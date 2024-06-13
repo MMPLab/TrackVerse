@@ -26,11 +26,11 @@ The dataset is released as a list of YouTube video IDs together with the metadat
 
 | Subset        | #Tracks |Max Tracks per Class |Link |
 |---|---|---|---|
-|Full TrackVerse|4.1M|---|[Google Drive]()|
-|82K-CB100 |82K|100|[Google Drive]()|
-|184K-CB300 |184K|300|[Google Drive]()|
-|259K-CB500 |259K|500|[Google Drive]()|
-|392K-CB1000 |392K|1000|[Google Drive]()|
+|Full TrackVerse|4.1M|---|[Google Drive](https://drive.google.com/file/d/17MjPEpW2OTPqaFlL3OO0i2YEwJOeDeMx/view?usp=sharing)|
+|82K-CB100 |82K|100|[Google Drive](https://drive.google.com/file/d/1f-m5ot7ShqOVLPB3kGI0zJsgrp4n64Hr/view?usp=sharing)|
+|184K-CB300 |184K|300|[Google Drive](https://drive.google.com/file/d/12X7PxNV2IWvZMafhIl9hdbdvQwtp-K6D/view?usp=sharing)|
+|259K-CB500 |259K|500|[Google Drive](https://drive.google.com/file/d/1E1bZQzUON4gAgJtQXAumFm8BIliyE6vV/view?usp=sharing)|
+|392K-CB1000 |392K|1000|[Google Drive](https://drive.google.com/file/d/1OSO_nnmqIx7myc6l8hNECzKSD1-Lu5bg/view?usp=sharing)|
 
 <details> <summary>Metadata keys</summary>
 Below is a detailed explanation of the keys present in each line of these JSONL files:
