@@ -21,9 +21,14 @@ In this repo, we provide an overview of the TrackVerse dataset, and the code to 
 - [License](#license)
 
 ## TrackVerse Overview
-The Full TrackVerse contains 4,100,000,000 object tracks, spanning 1203 categories with a long-tailed distribution. These categories are identified using [DETIC](https://github.com/facebookresearch/Detic) with the [LVIS](https://www.lvisdataset.org) ontology. More dataset examples and analysis in [here](./doc/statistics.md).
+The Full TrackVerse contains 4,100,000 object tracks, spanning 1203 categories from the [LVIS](https://www.lvisdataset.org) ontology 
+with a long-tailed distribution. 
+The objects are localized using [DETIC](https://github.com/facebookresearch/Detic) and tracked over time using 
+[ByteTrack](github.com/ifzhang/bytetrack). More dataset examples and analysis in [here](./doc/statistics.md).
 
-We also offer curated subsets at different scales, ensuring a more balanced distribution. These subsets limit the number of tracks per class to 100, 300, 500, and 1000. As a result, we have four carefully selected subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
+We also offer curated subsets at different scales, ensuring more balanced class distributions. 
+These subsets limit the number of tracks per class to 100, 300, 500, and 1000, resulting in four carefully selected 
+subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
 
 ## Download TrackVerse
 The dataset is released as a list of YouTube video IDs together with the metadata for all object tracks extracted from them. The dataset is organized in JSONL files, with each line containing the metadata for a single object track. TrackVerse is available for download in the following subsets:
@@ -54,37 +59,25 @@ Below is a detailed explanation of the keys present in each line of these JSONL 
 
 
 ## Quickstart
-Get started with TrackVerse quickly by setting up your environment and exploring the dataset through a demonstration.
-
-### Requirements
-Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
-
-
-### Demo
-The [dataset_demo.ipynb](notebook/dataset_demo.ipynb) notebook guides you through the process of downloading and accessing the dataset, offering practical examples of its use.
+Get started with TrackVerse by setting up your environment and exploring the dataset through a demonstration.
+- **Conda Environment:** Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
+- **Demo:** The [dataset_demo.ipynb](notebook/dataset_demo.ipynb) notebook guides you through the process of downloading and accessing the dataset, offering practical examples of its use.
 
 
 ## Generate Customized TrackVerse Dataset
-
 You can also create your own customized dataset of object tracks, for example, using different vocabulary, different source videos or different curation strategies.
 
-### Step 1: Set Up the Environment
-Refer to the [requirements section](###requirements) for detailed instructions.
-
-### Step 2: Clone the Repository 
-The option `--recurse-submodules` is required.
-
-```
-git clone --recurse-submodules https://github.com/pedro-morgado/object_tracks_db.git
-```
-
-### Step 3: Follow the Pipeline
-Follow the detailed steps outlined in our [pipeline documentation](doc/pipeline.md).
+1) **Set Up the Environment:** Refer to the [install guidelines](doc/env.md) for detailed instructions.
+2) **Clone the Repository:** `git clone --recurse-submodules https://github.com/pedro-morgado/object_tracks_db.git`
+3) **Follow the Pipeline:** Follow the detailed steps outlined in our [pipeline documentation](doc/pipeline.md).
 
 ## Maintenance
-
 For support or inquiries, please open a [GitHub issue](https://github.com/pedro-morgado/object_tracks_db/issues). If you have questions about technical details or need further assistance, feel free to reach out to us directly.
 
 ## License
+<<<<<<< HEAD
 
 All code and data in this repo are available under the [MIT License](LICENSE) for research purposes only.
+=======
+All code and data in this repository are available under the [MIT License](LICENSE). This license permits commercial use, modification, distribution, and private use of the software.
+>>>>>>> 8ca56d4a41726653160e0bf211e614a80c996f35

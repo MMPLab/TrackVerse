@@ -1,4 +1,3 @@
-# Adapted from https://github.com/microsoft/XPretrain
 import os
 import glob
 import argparse
