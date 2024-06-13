@@ -1,8 +1,8 @@
 # Environment
 Create conda environment with youtube-dl and ffmpeg 
 ```bash
-conda create -n db -y python=3.8  # python must be 3.8 (won't work with >=3.9 or <3.7) 
-conda activate db
+conda create -n trackverse -y python=3.8  # python must be 3.8 (won't work with >=3.9 or <3.7) 
+conda activate trackverse
 conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 'Pillow<10' -c pytorch -c conda-forge
 python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu113/torch1.10/index.html
 pip install yt-dlp hydra-core submitit cython_bbox matplotlib tqdm av scenedetect open-clip-torch

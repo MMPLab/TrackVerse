@@ -19,9 +19,14 @@ In this repo, we provide an overview of the TrackVerse dataset, and the code to 
 - [License](#license)
 
 ## TrackVerse Overview
-The Full TrackVerse contains 4,100,000,000 object tracks, spanning 1203 categories with a long-tailed distribution. These categories are identified using [DETIC](https://github.com/facebookresearch/Detic) with the [LVIS](https://www.lvisdataset.org) ontology. More dataset examples and analysis in [here](./doc/statistics.md).
+The Full TrackVerse contains 4,100,000,000 object tracks, spanning 1203 categories from the [LVIS](https://www.lvisdataset.org) ontology 
+with a long-tailed distribution. 
+The objects are localized using [DETIC](https://github.com/facebookresearch/Detic) and tracked over time using 
+[ByteTrack](github.com/ifzhang/bytetrack). More dataset examples and analysis in [here](./doc/statistics.md).
 
-We also offer curated subsets at different scales, ensuring a more balanced distribution. These subsets limit the number of tracks per class to 100, 300, 500, and 1000. As a result, we have four carefully selected subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
+We also offer curated subsets at different scales, ensuring more balanced class distributions. 
+These subsets limit the number of tracks per class to 100, 300, 500, and 1000, resulting in four carefully selected 
+subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
 
 ## Download TrackVerse
 The dataset is released as a list of YouTube video IDs together with the metadata for all object tracks extracted from them. The dataset is organized in JSONL files, with each line containing the metadata for a single object track. TrackVerse is available for download in the following subsets:
