@@ -19,7 +19,7 @@ In this repo, we provide an overview of the TrackVerse dataset, and the code to 
 - [License](#license)
 
 ## TrackVerse Overview
-The Full TrackVerse contains 4,100,000,000 object tracks, spanning 1203 categories from the [LVIS](https://www.lvisdataset.org) ontology 
+The Full TrackVerse contains 4,100,000 object tracks, spanning 1203 categories from the [LVIS](https://www.lvisdataset.org) ontology 
 with a long-tailed distribution. 
 The objects are localized using [DETIC](https://github.com/facebookresearch/Detic) and tracked over time using 
 [ByteTrack](github.com/ifzhang/bytetrack). More dataset examples and analysis in [here](./doc/statistics.md).
@@ -57,37 +57,20 @@ Below is a detailed explanation of the keys present in each line of these JSONL 
 
 
 ## Quickstart
-Get started with TrackVerse quickly by setting up your environment and exploring the dataset through a demonstration.
-
-### Requirements
-Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
-
-
-### Demo
-The [dataset_demo.ipynb](notebook/dataset_demo.ipynb) notebook guides you through the process of downloading and accessing the dataset, offering practical examples of its use.
+Get started with TrackVerse by setting up your environment and exploring the dataset through a demonstration.
+- **Conda Environment:** Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
+- **Demo:** The [dataset_demo.ipynb](notebook/dataset_demo.ipynb) notebook guides you through the process of downloading and accessing the dataset, offering practical examples of its use.
 
 
 ## Generate Customized TrackVerse Dataset
-
 You can also create your own customized dataset of object tracks, for example, using different vocabulary, different source videos or different curation strategies.
 
-### Step 1: Set Up the Environment
-Refer to the [requirements section](###requirements) for detailed instructions.
-
-### Step 2: Clone the Repository 
-The option `--recurse-submodules` is required.
-
-```
-git clone --recurse-submodules https://github.com/pedro-morgado/object_tracks_db.git
-```
-
-### Step 3: Follow the Pipeline
-Follow the detailed steps outlined in our [pipeline documentation](doc/pipeline.md).
+1) **Set Up the Environment:** Refer to the [install guidelines](doc/env.md) for detailed instructions.
+2) **Clone the Repository:** `git clone --recurse-submodules https://github.com/pedro-morgado/object_tracks_db.git`
+3) **Follow the Pipeline:** Follow the detailed steps outlined in our [pipeline documentation](doc/pipeline.md).
 
 ## Maintenance
-
 For support or inquiries, please open a [GitHub issue](https://github.com/pedro-morgado/object_tracks_db/issues). If you have questions about technical details or need further assistance, feel free to reach out to us directly.
 
 ## License
-
 All code and data in this repository are available under the [MIT License](LICENSE). This license permits commercial use, modification, distribution, and private use of the software.
