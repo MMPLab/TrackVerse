@@ -2,7 +2,9 @@
 TrackVerse is the largest video dataset that ensures object-centricity, class diversity and rich object motions and states to date, offering a unique playground to explore unsupervised representation learning from object dynamics, moving beyond static object appearance. 
 It is built using an automated collection pipeline, shown below, and can be easily scaled up without any manual annotation.
 
-![pipeline](./doc/figs/pipeline.png) 
+<p align="center">
+  <img src="./doc/figs/pipeline.png" alt="drawing" width="80%"/>
+</p>
 
 TrackVerse also provides a validation subset with human-verified labels for the object categories to facilitate in-domain evaluation of object representation learning methods. A few examples of extracted tracks are shown below.
 
@@ -85,4 +87,4 @@ For support or inquiries, please open a [GitHub issue](https://github.com/pedro-
 
 ## License
 
-All code and data in this repository are available under the [MIT License](LICENSE). This license permits commercial use, modification, distribution, and private use of the software.
+All code and data in this repo are available under the [MIT License](LICENSE) for research purposes only.
