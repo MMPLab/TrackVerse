@@ -15,6 +15,8 @@ In this repo, we provide an overview of the TrackVerse dataset, and the code to 
 - [Download TrackVerse](#download-trackverse)
 - [Quickstart](#quickstart)
 - [Generate Customized TrackVerse Dataset](#generate-customized-trackverse-dataset)
+- [Maintenance](#maintenance)
+- [License](#license)
 
 ## TrackVerse Overview
 The Full TrackVerse contains 4,100,000,000 object tracks, spanning 1203 categories with a long-tailed distribution. These categories are identified using [DETIC](https://github.com/facebookresearch/Detic) with the [LVIS](https://www.lvisdataset.org) ontology. More dataset examples and analysis in [here](./doc/statistics.md).
