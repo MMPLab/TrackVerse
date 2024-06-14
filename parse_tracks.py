@@ -35,7 +35,7 @@ def parse_arguments():
     parser.add_argument("--skip_processing", default=False, action="store_true")
     parser.add_argument("--skip_download", default=False, action="store_true")
     parser.add_argument("--skip_filters", default=False, action="store_true")
-    parser.add_argument("--push_to_euler", default=False, action="store_true")
+    parser.add_argument("--push_to", default=None, type=str, help="path of the remote server to push videos to.")
     parser.add_argument("--print_progress", default=False, action="store_true")
     parser.add_argument("--clean_videos", default=False, action="store_true")
 
@@ -271,7 +271,7 @@ class ObjectTracksParser(object):
 
         # Output directories
         self.downl_dir = os.path.join(base_dir, 'videos_mp4')
-        self.downloader = yt_utils.YoutubeDL(self.downl_dir, args.push_to_euler)
+        self.downloader = yt_utils.YoutubeDL(self.downl_dir, args.push_to)
         self.removed_tracker = misc_utils.ProgressTracker(os.path.join(self.downl_dir, 'removed.txt'))
 
         self.tracks_meta_dir = os.path.join(base_dir, 'tracks_meta', dataset_name)

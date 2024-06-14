@@ -19,7 +19,7 @@ def parse_arguments():
     parser.add_argument("--slurm", default=False, action="store_true")
     parser.add_argument("--partition", default='research')
     parser.add_argument('--base_dir', default='.', type=str, help='Working Directory')
-    parser.add_argument('--dataset_name', default='lvis', type=str, help='Working Directory')
+    parser.add_argument('--dataset_domain', default='lvis', type=str, help='Working Directory')
     parser.add_argument('--db_meta_file', default=None, type=str,
                         help='GZIP file containing tracks in a dataset.')
     parser.add_argument('--num_chunks', default=1, type=int, help='Number of chunks')
@@ -221,7 +221,16 @@ def extract_track(boxes, timestamps, reader, box_expansion=0.):
 
 
 class ObjectTrackExtractor:
-    def __init__(self, base_dir, db_meta_file=None, dataset_name='lvis', num_chunks=1, chunk_id=1):
+    def __init__(self, base_dir, db_meta_file=None, dataset_domain='lvis', box_exp=[0.], num_chunks=1, chunk_id=1):
+        """ Extract object tracks from videos.
+            Args:
+                base_dir (str): The base directory.
+                db_meta_file (str, optional): The path to the database jsonl meta file. If it is None, the tracks are loaded from all jsonl.gzip files the meta directory.
+                dataset_domain (str, optional): The class domain of the dataset. 
+                box_exp (list, optional): The box expansion values. 
+                num_chunks (int, optional): The number of chunks. 
+                chunk_id (int, optional): The chunk ID. 
+        """
         self.db_meta_file = None
         if db_meta_file is not None:
             assert db_meta_file is not None and os.path.exists(base_dir)
@@ -229,20 +238,20 @@ class ObjectTrackExtractor:
 
         self.num_chunks = num_chunks
         self.chunk_id = chunk_id
-        self.box_exp = [0., 0.25, 0.5, 1.]
+        self.box_exp = box_exp #[0., 0.25, 0.5, 1.]
         self.max_track_len = 30
 
         self.base_dir = base_dir
-        self.dataset_name = dataset_name
+        self.dataset_domain = dataset_domain
 
         self.videos_mp4_dir = f"{self.base_dir}/videos_mp4"
-        self.tracks_mp4_dir = f"{self.base_dir}/tracks_mp4/{self.dataset_name}"
+        self.tracks_mp4_dir = f"{self.base_dir}/tracks_mp4/{self.dataset_domain}"
         misc_utils.check_dirs(self.tracks_mp4_dir)
 
     def get_jobs_from_meta_dir(self):
         import glob
         parse_yid = lambda t: t.split('/')[-1][:11]
-        all_files = sorted(glob.glob(f"{self.base_dir}/tracks_meta/{self.dataset_name}/*/*.gzip"))
+        all_files = sorted(glob.glob(f"{self.base_dir}/tracks_meta/{self.dataset_domain}/*/*.gzip"))
         for fn in all_files[self.chunk_id::self.num_chunks]:
             yid = parse_yid(fn)
             tracks = load_tracks(fn, yid)
@@ -322,7 +331,7 @@ class Launcher:
         ObjectTrackExtractor(
             args.base_dir,
             db_meta_file=args.db_meta_file,
-            dataset_name=args.dataset_name,
+            dataset_domain=args.dataset_domain,
             num_chunks=args.num_chunks,
             chunk_id=args.chunk_id
         ).extract_all()

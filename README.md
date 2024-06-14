@@ -6,16 +6,14 @@ It is built using an automated collection pipeline, shown below, and can be easi
   <img src="./doc/figs/pipeline.png" alt="drawing" width="80%"/>
 </p>
 
-TrackVerse also provides a validation subset with human-verified labels for the object categories to facilitate in-domain evaluation of object representation learning methods. A few examples of extracted tracks are shown below.
-
-![example](./doc/figs/vid_examples.png) 
+TrackVerse also provides a validation subset with human-verified labels for the object categories to facilitate in-domain evaluation of object representation learning methods. 
 
 In this repo, we provide an overview of the TrackVerse dataset, and the code to use it, extend it, or generate a customized dataset using our pipeline.
 
 ## Table of Content
 - [TrackVerse Overview](#trackverse-overview)
-- [Download TrackVerse](#download-trackverse)
 - [Quickstart](#quickstart)
+- [Download TrackVerse](#download-trackverse)
 - [Generate Customized TrackVerse Dataset](#generate-customized-trackverse-dataset)
 - [Maintenance](#maintenance)
 - [License](#license)
@@ -24,11 +22,25 @@ In this repo, we provide an overview of the TrackVerse dataset, and the code to 
 The Full TrackVerse contains 4,100,000 object tracks, spanning 1203 categories from the [LVIS](https://www.lvisdataset.org) ontology 
 with a long-tailed distribution. 
 The objects are localized using [DETIC](https://github.com/facebookresearch/Detic) and tracked over time using 
-[ByteTrack](github.com/ifzhang/bytetrack). More dataset examples and analysis in [here](./doc/statistics.md).
+[ByteTrack](github.com/ifzhang/bytetrack). A few examples of extracted tracks are shown below.
+
+
+
+
+
+
+More dataset examples and analysis in [here](./doc/statistics.md).
 
 We also offer curated subsets at different scales, ensuring more balanced class distributions. 
 These subsets limit the number of tracks per class to 100, 300, 500, and 1000, resulting in four carefully selected 
 subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
+
+
+## Quickstart
+Get started with TrackVerse by setting up your environment and exploring the dataset through a demonstration.
+- **Conda Environment:** Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
+- **Demo:** The [dataset_demo.ipynb](dataset_demo.ipynb) notebook guides you through the process of downloading and accessing the dataset.
+
 
 ## Download TrackVerse
 The dataset is released as a list of YouTube video IDs together with the metadata for all object tracks extracted from them. The dataset is organized in JSONL files, with each line containing the metadata for a single object track. TrackVerse is available for download in the following subsets:
@@ -57,27 +69,21 @@ Below is a detailed explanation of the keys present in each line of these JSONL 
 - `mp4_filename` - Filename of the track produced by running the track extraction pipeline.
 </details>
 
+To download all tracks specified in a given JSONL file, run:
+```
 
-## Quickstart
-Get started with TrackVerse by setting up your environment and exploring the dataset through a demonstration.
-- **Conda Environment:** Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
-- **Demo:** The [dataset_demo.ipynb](notebook/dataset_demo.ipynb) notebook guides you through the process of downloading and accessing the dataset, offering practical examples of its use.
-
+```
 
 ## Generate Customized TrackVerse Dataset
 You can also create your own customized dataset of object tracks, for example, using different vocabulary, different source videos or different curation strategies.
 
 1) **Set Up the Environment:** Refer to the [install guidelines](doc/env.md) for detailed instructions.
-2) **Clone the Repository:** `git clone --recurse-submodules https://github.com/pedro-morgado/object_tracks_db.git`
+2) **Clone the Repository:** `git clone --recurse-submodules https://github.com/MMPLab/TrackVerse.git`
 3) **Follow the Pipeline:** Follow the detailed steps outlined in our [pipeline documentation](doc/pipeline.md).
 
 ## Maintenance
-For support or inquiries, please open a [GitHub issue](https://github.com/pedro-morgado/object_tracks_db/issues). If you have questions about technical details or need further assistance, feel free to reach out to us directly.
+For support or inquiries, please open a [GitHub issue](https://github.com/MMPLab/TrackVerse/issues). If you have questions about technical details or need further assistance, feel free to reach out to us directly.
 
 ## License
-<<<<<<< HEAD
 
 All code and data in this repo are available under the [MIT License](LICENSE) for research purposes only.
-=======
-All code and data in this repository are available under the [MIT License](LICENSE). This license permits commercial use, modification, distribution, and private use of the software.
->>>>>>> 8ca56d4a41726653160e0bf211e614a80c996f35

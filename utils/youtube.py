@@ -11,11 +11,11 @@ class STATUS(Enum):
 
 
 class YoutubeDL(object):
-    def __init__(self, downl_dir, push_to_euler):
+    def __init__(self, downl_dir, push_to=None):
         self.downl_dir = downl_dir
         misc_utils.check_dirs(self.downl_dir)
         self.downl_tracker = misc_utils.ProgressTracker(os.path.join(downl_dir, 'downloaded.txt'))
-        self.push_to_euler = push_to_euler
+        self.push_to = push_to
 
     def download_video(self, youtube_id):
         url = f"https://www.youtube.com/watch?v={youtube_id}"
@@ -45,10 +45,9 @@ class YoutubeDL(object):
         if down_result != 0:
             return STATUS.FAIL, None
 
-        if self.push_to_euler:
-            euler_base_folder = '/srv/home/groups/pmorgado/datasets/object_tracks_db_fixed_detic'
-            euler_dest = f'{euler_base_folder}/videos_mp4/{youtube_id[:2]}/{youtube_id}.mp4'
-            os.system(f'rsync {filename} euler:{euler_dest}')
+        if self.push_to:
+            remote_dest = f'{self.push_to}/videos_mp4/{youtube_id[:2]}/{youtube_id}.mp4'
+            os.system(f'rsync {filename} {remote_dest}')
             os.remove(filename)
 
         return STATUS.SUCCESS, filename
