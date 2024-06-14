@@ -16,7 +16,6 @@ conda activate trackverse
 
 # detectron2 does not work with latest pytorch. We use pytorch==1.10 with cuda==11.3.
 conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch
-conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 'Pillow<10' -c pytorch -c conda-forge
 python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu113/torch1.10/index.html
 
 # Install detic requirements
@@ -24,10 +23,10 @@ python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wh
 cd detic && pip install -r requirements.txt fasttext==0.9.1 && cd ..
 
 # Download a DETIC checkpoint and place it under `detic/models/`.
-wget https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth -O detic/models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth
+mkdir detic/models && wget https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth -O detic/models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth
 
 # Install other tools
-pip install yt-dlp hydra-core submitit cython_bbox matplotlib tqdm av scenedetect jupyter open-clip-torch
+pip install yt-dlp hydra-core submitit lap cython_bbox matplotlib tqdm av scenedetect jupyter open-clip-torch 'Pillow<10'
 ```
 
 - Install [pytorch](https://pytorch.org/) and [detectron2](https://detectron2.readthedocs.io/tutorials/install.html)

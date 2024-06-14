@@ -144,7 +144,7 @@ class VideoWriter(VideoContainer):
 
 
 class VideoDB(IterableDataset):
-    def __init__(self, video_fn, frame_rate=None, max_dur=None, start_time=None, transform=None, skip_nonkey_frames=True):
+    def __init__(self, video_fn, frame_rate=None, max_dur=None, start_time=None, transform=None, skip_nonkey_frames=False):
         self.reader = VideoReader(video_fn, rate=frame_rate, start_time=start_time, duration=max_dur, skip_nonkey_frames=skip_nonkey_frames)
         self.transform = transform
         if self.transform is None:

@@ -5,7 +5,6 @@ import json
 import gzip
 import random
 import tqdm
-from extract_tracks import Track
 from collections import defaultdict
 import numpy as np
 import torch
@@ -83,20 +82,16 @@ class Curator(object):
     def __init__(self, base_dir, dataset_name, index_file, num_workers=4):
         self.base_dir = base_dir
         self.dataset_name = dataset_name
-        self.index_file = index_file
+        self.index_file = os.path.join(self.base_dir, index_file)
         self.num_workers = num_workers
 
         self.track_fns, self.track_yid, self.track_class, self.track_logit, self.track_conf, self.track_tid = [], [], [], [], [], []
         self.track_ts, self.track_bbox = [], []
         self.class2idx = defaultdict(list)
 
-        self.labeled_vids = set([ln[:11] for ln in open(f'{base_dir}/verified_clips_all.txt') if ln.strip()])
-        self.labeled_tracks = set([ln[:2]+'/'+ln.split(',')[0] for ln in open(f'{base_dir}/verified_clips_all.txt') if ln.strip()])
-
+        self.labeled_vids = set([ln[:11] for ln in open(f'assets/trackverse-verified-6perclass.txt') if ln.strip()])
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        # self.device = torch.device('cpu')
         print('Using {} device'.format(self.device))
-
 
     @staticmethod
     def parse_yid(t):
@@ -108,28 +103,17 @@ class Curator(object):
 
     def get_emb(self, tid):
         try:
-            return torch.load(f"{self.base_dir}/tracks_mp4_hdvila_lvis_BoxExp0.0_embeddings/{self.track_fns[tid].replace('.mp4', '.pt')}")[0]
+            return np.load(f"{self.base_dir}/tracks_embeddings/{self.dataset_name}/{self.track_fns[tid].replace('.mp4', '.npy')}")
         except Exception:
-            return torch.randn(2048)
+            return np.randn(2048)
 
-    def index_worker(self, tracks_db_part, meta_fns_part, chunk_id):
+    @staticmethod
+    def index_worker(tracks_db_part, meta_fns_part, chunk_id):
         print(f"Start chunk {chunk_id}. Storing results in {tracks_db_part}.")
-
         with gzip.open(tracks_db_part, 'wt') as fp:
             for it, fn in enumerate(meta_fns_part):
-                yid = self.parse_yid(fn)
-                for l in gzip.open(fn, 'rt'):
-                    m = json.loads(l)
-                    t = Track(yid, np.array(m['frame_ts']), np.array(m['frame_bboxes']), m)
-
-                    new_m = {}
-                    for k in ['track_id', 'video_size', 'track_ts', 'top10_lbl', 'top10_desc', 'top10_cls',
-                              'top10_wcls',
-                              'frame_ts', 'frame_bboxes', ]:
-                        new_m[k] = m[k]
-                    new_m['yid'] = yid
-                    new_m['mp4_filename'] = t.mp4_filename
-                    fp.write(json.dumps(new_m) + '\n')
+                for ln in gzip.open(fn, 'rt'):
+                    fp.write(ln)
                 if it % 100 == 0:
                     print(f'[Chunk {chunk_id}] Processed {it}/{len(meta_fns_part)}', flush=True)
 
@@ -157,22 +141,22 @@ class Curator(object):
         db = set()
         for tid, line in tqdm.tqdm(enumerate(gzip.open(self.index_file))):
             data = json.loads(line)
-            if data['mp4_filename'] in db:
+            if data['fn'] in db:
                 continue
-            db.add(data['mp4_filename'])
+            db.add(data['fn'])
             top10_probs = softmax(data['top10_wcls'][0], temperature=0.1)
+
             self.track_tid.append(tid)
-            self.track_fns.append(data['mp4_filename'])
+            self.track_fns.append(data['fn'])
             self.track_yid.append(data['yid'])
             self.track_class.append(self.parse_label(data['top10_desc'][0]))
             self.track_logit.append(data['top10_wcls'][0][0])
             self.track_conf.append(top10_probs[0] - top10_probs[1])
-            self.track_ts.append(np.array(data['frame_ts']))
-            self.track_bbox.append(np.array(data['frame_bboxes']))
+            self.track_ts.append(np.array(data['track_ts']))
+            self.track_bbox.append(np.array(data['track_bbox']))
 
         # Filter out test videos/tracks
         keep_idx = [i for i, vid in enumerate(self.track_yid) if vid not in self.labeled_vids]
-        # keep_idx = [i for i, track in enumerate(self.track_fns) if track not in self.labeled_tracks]
         self.filter(keep_idx)
 
         # Index by class
@@ -327,7 +311,7 @@ class Curator(object):
         sorted_seq = self.sort_population(range(len(self.track_fns)), T=float('inf'))
         for N in N_list:
             subset_name = f'N{N}K'
-            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}/NoTestVids/LVIS-{N}K-RND-NoTestVids.jsonl.gzip'
+            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}-{N}K-RND.jsonl.gzip'
             selected_tracks[subset_name] = [self.track_tid[idx] for idx in sorted_seq[:N*1000]]
         self.save_subsets(subset_gzip, selected_tracks)
 
@@ -354,18 +338,18 @@ class Curator(object):
         selected_tracks, subset_gzip = {}, {}
         suffix = ''
         if min_nn_dist > 0.:
-            suffix = f"{suffix}-MinNNDist{min_nn_dist:0.1f}"
+            suffix += f"MinNNDist{min_nn_dist:0.1f}"
         if max_spt_iou < 1.:
-            suffix = f"{suffix}-MaxIoU{max_spt_iou:0.2f}Buf{iou_tbuff:0.2f}"
+            suffix += f"MaxIoU{max_spt_iou:0.2f}Buf{iou_tbuff:0.2f}"
         if min_motion > 0.:
-            suffix = f"{suffix}-MinQ90MotionV2{min_motion:0.1f}"
+            suffix += f"MinQ90Motion{min_motion:0.1f}"
         for Nc in Nc_list:
             for temp in [0.]: # [0., 0.1, 1., float('inf')]:
                 subset_name = f'Logit-T{temp}-Nc{Nc}'
                 selected_tracks[subset_name] = [self.track_tid[idx] for cls in self.class2idx
                                                 for idx in sampled_seq[f'Logit-T{temp}'][cls][:Nc]]
                 N = len(selected_tracks[subset_name])
-                subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}/NoTestVids/LVIS-{N//1000}K-CB{Nc}-T{temp}{suffix}-NoTestVids.jsonl.gzip'
+                subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}-CB{Nc}-{N//1000}K-T{temp}{suffix}.jsonl.gzip'
 
         self.save_subsets(subset_gzip, selected_tracks)
 
@@ -445,7 +429,7 @@ class Curator(object):
                 minred_idx, cls = self.minimum_redundancy_curator(self.class2idx[cls], Nc, cls)
                 selected_tracks[subset_name] += [self.track_tid[idx] for idx in minred_idx]
             N = len(selected_tracks[subset_name])
-            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}/NoTestVids/LVIS-{N//1000}K-CB{Nc}-MinRed-NoTestVids.jsonl.gzip'
+            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}-MinRed-CB{Nc}-{N//1000}K.jsonl.gzip'
         self.save_subsets(subset_gzip, selected_tracks)
 
     def sample_max_motion(self, Nc_list):
@@ -462,15 +446,10 @@ class Curator(object):
             track_fns = [self.track_fns[i] for i in self.class2idx[cls]]
             db = VisualMetricsDB(self.base_dir, self.dataset_name, track_fns=track_fns, track_ids=self.class2idx[cls], return_motion_stats=True)
             loader = DataLoader(db, num_workers=self.num_workers, batch_size=64)
-            track_idx, motion_q50, motion_q90 = [], [], []
+            track_idx, motion_q90 = [], []
             for dt in tqdm.tqdm(loader):
-                track_idx.append(dt['tid']), motion_q50.append(dt['motion']['q50']), motion_q90.append(dt['motion']['q90'])
-            track_idx, motion_q50, motion_q90 = torch.cat(track_idx), torch.cat(motion_q50), torch.cat(motion_q90)
-
-            max_motion_idx = [track_idx[idx] for idx in (-motion_q50).argsort()]
-            for Nc in Nc_list:
-                subset_name = f'MaxQ50Motion-Nc{Nc}'
-                selected_tracks[subset_name] += [self.track_tid[idx] for idx in max_motion_idx[:Nc]]
+                track_idx.append(dt['tid']), motion_q90.append(dt['motion']['q90'])
+            track_idx, motion_q90 = torch.cat(track_idx), torch.cat(motion_q90)
 
             max_motion_idx = [track_idx[idx] for idx in (-motion_q90).argsort()]
             for Nc in Nc_list:
@@ -478,13 +457,9 @@ class Curator(object):
                 selected_tracks[subset_name] += [self.track_tid[idx] for idx in max_motion_idx[:Nc]]
 
         for Nc in Nc_list:
-            subset_name = f'MaxQ50Motion-Nc{Nc}'
-            N = len(selected_tracks[subset_name])
-            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}/NoTestVids/LVIS-{N//1000}K-CB{Nc}-MaxQ50Motion-NoTestVids.jsonl.gzip'
-
             subset_name = f'MaxQ90Motion-Nc{Nc}'
             N = len(selected_tracks[subset_name])
-            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}/NoTestVids/LVIS-{N//1000}K-CB{Nc}-MaxQ90Motion-NoTestVids.jsonl.gzip'
+            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}-MaxQ90Motion-CB{Nc}-{N//1000}K.jsonl.gzip'
 
         self.save_subsets(subset_gzip, selected_tracks)
 
@@ -503,11 +478,11 @@ class VisualMetricsDB(Dataset):
         return len(self.track_fns)
 
     def load_embeddings(self, idx):
-        fn = f"{self.base_dir}/tracks_mp4_hdvila_lvis_BoxExp0.0_embeddings/{self.track_fns[idx].replace('.mp4', '.pt')}"
+        fn = f"{self.base_dir}/tracks_embeddings/{self.dataset_name}/{self.track_fns[idx].replace('.mp4', '.npy')}"
         try:
-            return torch.load(fn)[0]
+            return np.load(fn)
         except Exception:
-            return torch.randn(2048)
+            return np.randn(2048)
 
     def load_motion(self, idx):
         try:
@@ -528,7 +503,6 @@ class VisualMetricsDB(Dataset):
 
 class Launcher:
     def __call__(self, args):
-        # mp.set_start_method('spawn')
         for k in args.__dict__:
             print(f"{k}: {args.__dict__[k]}")
         curator = Curator(args.base_dir, args.dataset_name, args.index_file, num_workers=args.num_workers)

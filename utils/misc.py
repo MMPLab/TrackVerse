@@ -1,3 +1,4 @@
+import re
 import os
 import av
 
@@ -10,6 +11,14 @@ def check_dirs(dirs):
 def check_video(video_path):
     try:
         av.open(video_path)
+        return True
+    except Exception:
+        return False
+
+
+def check_file(path):
+    try:
+        open(path).readline()
         return True
     except Exception:
         return False
@@ -33,3 +42,9 @@ class ProgressTracker:
 
     def check_completed(self, vid):
         return vid in self.completed
+
+
+def ts2sec(ts):
+    m = re.match('(\d+):(\d+):(\d+)\.(\d+)', str(ts))
+    sec = int(m.group(1))*3600+int(m.group(2))*60+int(m.group(3))+float(m.group(4))/1000
+    return sec

@@ -16,7 +16,7 @@ class STrack(BaseTrack):
 
         # wait activate
         self._ts = ts
-        self._tlwh = np.asarray(tlwh, dtype=np.float)
+        self._tlwh = np.asarray(tlwh, dtype=float)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
@@ -183,24 +183,29 @@ class STrack(BaseTrack):
 
 
 class BYTETracker(object):
-    def __init__(self, args):
+    def __init__(self, track_thresh, track_iou_low_thresh, match_thresh, frame_rate, track_buffer, motion_weight, mot20):
+        self.track_thresh = track_thresh
+        self.track_iou_low_thresh = track_iou_low_thresh
+        self.match_thresh = match_thresh
+        self.frame_rate = frame_rate
+        self.track_buffer = track_buffer
+        self.motion_weight = motion_weight
+        self.mot20 = mot20
+
         self.frame_id = -1
-        self.args = args
         self.tracked_stracks = []  # type: list[STrack]
         self.lost_stracks = []  # type: list[STrack]
         self.removed_stracks = []  # type: list[STrack]
 
-        # self.det_thresh = args.track_thresh
-        self.det_thresh = args.track_thresh + 0.1
-        self.buffer_size = int(args.frame_rate / 30.0 * args.track_buffer)
+        self.det_thresh = track_thresh + 0.1
+        self.buffer_size = int(frame_rate / 30.0 * track_buffer)
         self.max_time_lost = self.buffer_size
         self.kalman_filter = KalmanFilter()
-        self.motion_weight = args.motion_weight
-        assert(self.motion_weight <= 1)
+        assert self.motion_weight <= 1
         self.appearance_weight = 1 - self.motion_weight
 
     def reset_tracker(self):
-        self.__init__(self.args)
+        self.__init__(self.track_thresh, self.track_iou_low_thresh, self.match_thresh, self.frame_rate, self.track_buffer, self.motion_weight, self.mot20)
 
     def get_tracks(self, min_secs=-1, min_area=-1):
         output_tracks = []
@@ -223,15 +228,15 @@ class BYTETracker(object):
         removed_stracks = []
 
         '''High Confidence Detections'''
-        boxes_high = boxes[scores > self.args.track_thresh]
-        scores_high = scores[scores > self.args.track_thresh]
-        feats_high = feats[scores > self.args.track_thresh]
-        logits_high = logits[scores > self.args.track_thresh]
+        boxes_high = boxes[scores > self.track_thresh]
+        scores_high = scores[scores > self.track_thresh]
+        feats_high = feats[scores > self.track_thresh]
+        logits_high = logits[scores > self.track_thresh]
         dets_high = [STrack(ts, STrack.tlbr_to_tlwh(tlbr), s, feat=f, logit=lgt) for
                       (tlbr, s, f, lgt) in zip(boxes_high, scores_high, feats_high, logits_high)]
 
         '''Low Confidence Detections'''
-        inds_low = torch.logical_and(scores < self.args.track_thresh, scores > 0.1)
+        inds_low = torch.logical_and(scores < self.track_thresh, scores > 0.1)
         boxes_low = boxes[inds_low]
         scores_low = scores[inds_low]
         logits_low = logits[inds_low]
@@ -247,11 +252,11 @@ class BYTETracker(object):
         # Predict the current location with KF
         STrack.multi_predict(strack_pool)
         dists_boxes = matching.iou_distance(strack_pool, dets_high)
-        if not self.args.mot20:
+        if not self.mot20:
             dists_boxes = matching.fuse_score(dists_boxes, dets_high)
         dists_embs = matching.embedding_distance(strack_pool, dets_high)
         dist = (self.motion_weight*dists_boxes + self.appearance_weight*dists_embs)
-        matches, u_track, u_detection = matching.linear_assignment(dist, thresh=self.args.match_thresh)
+        matches, u_track, u_detection = matching.linear_assignment(dist, thresh=self.match_thresh)
 
         for itracked, idet in matches:
             track = strack_pool[itracked]
@@ -267,7 +272,7 @@ class BYTETracker(object):
         # association the untrack to the low score detections
         r_tracked_stracks = [strack_pool[i] for i in u_track if strack_pool[i].state == TrackState.Tracked]
         dists = matching.iou_distance(r_tracked_stracks, dets_low)
-        matches, u_track, _ = matching.linear_assignment(dists, thresh=self.args.track_iou_low_thresh)
+        matches, u_track, _ = matching.linear_assignment(dists, thresh=self.track_iou_low_thresh)
         for itracked, idet in matches:
             track = r_tracked_stracks[itracked]
             det = dets_low[idet]
@@ -287,7 +292,7 @@ class BYTETracker(object):
         '''Deal with unconfirmed tracks, usually tracks with only one beginning frame'''
         dets_high_unmatch = [dets_high[i] for i in u_detection]
         dists = matching.iou_distance(unconfirmed, dets_high_unmatch)
-        if not self.args.mot20:
+        if not self.mot20:
             dists = matching.fuse_score(dists, dets_high_unmatch)
         matches, u_unconfirmed, u_detection = matching.linear_assignment(dists, thresh=0.7)
         for itracked, idet in matches:

@@ -7,10 +7,9 @@ import json
 import PIL.Image
 import numpy as np
 import scipy.ndimage as ndi
-import tqdm
 import submitit
 
-from avio import VideoReader, VideoWriter
+from utils.avio import VideoReader, VideoWriter
 from utils import misc as misc_utils
 
 
@@ -18,12 +17,14 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='youtube video downloader')
     parser.add_argument("--slurm", default=False, action="store_true")
     parser.add_argument("--partition", default='research')
-    parser.add_argument('--base_dir', default='.', type=str, help='Working Directory')
-    parser.add_argument('--dataset_name', default='lvis', type=str, help='Working Directory')
-    parser.add_argument('--db_meta_file', default=None, type=str,
-                        help='GZIP file containing tracks in a dataset.')
-    parser.add_argument('--num_chunks', default=1, type=int, help='Number of chunks')
-    parser.add_argument('--chunk_id', default=0, type=int, help='Number of chunks')
+    parser.add_argument("--world_size", default=1, type=int, help="scheduling chunks")
+    parser.add_argument("--rank", default=0, type=int, help="scheduling chunk id")
+
+    parser.add_argument('--base_dir', default='/home/pmorgado/datasets/TrackVerse/',
+                        help='Dataset directory')
+    parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
+                        help='index of youtube ids to download.')
+    parser.add_argument('--dataset_name', default="TrackVerseLVIS", help='Name of dataset.')
     return parser.parse_args()
 
 
@@ -32,31 +33,11 @@ class Track:
         self.yid = yid
         self.ts = ts
         self.boxes = boxes
-        parse_label = lambda t: t.replace('photo of a ', '').split(' (also')[0]
-        label = parse_label(meta['top10_desc'][0]).replace(' ', '-')
-        if 'mp4_filename' not in meta:
-            meta['mp4_filename'] = f"{yid[:2]}/{yid}-{label}-{self.get_hash()}.mp4"
-        if 'yid' not in meta:
-            meta['yid'] = yid
+        self.fn = meta['fn']
         self.meta = meta
 
-        self.mp4_filename = meta['mp4_filename']
-        # obj_scores = np.array(self.meta['frame_obj'])
-        # self.meta['obj_scores'] = [obj_scores.mean(), obj_scores.std()]
-        # Delete some stuff to avoid OOM
-        for k in ['frame_obj', 'frame_cls', 'frame_wcls', 'frame_lbl', 'frame_desc']:
-            if k in self.meta:
-                del self.meta[k]
-
-    def get_hash(self):
-        import hashlib  # unlike hash(), hashlib uses a constant seed for creating hash codes.
-        ts = tuple([t for t in self.ts])
-        boxes = tuple([tuple(b) for b in self.boxes.tolist()])
-        yid = self.yid
-        return hashlib.md5(f"{yid}-{str(ts)}-{str(boxes)}".encode('utf-8')).hexdigest()
-
     def overlap(self, track2):
-        if self.yid != track2.yid or self.ts[0]>track2.ts[-1] or self.ts[-1]<track2.ts[0]:
+        if self.yid != track2.yid or self.ts[0] > track2.ts[-1] or self.ts[-1] < track2.ts[0]:
             return 0
 
         interAreaSum, unionAreaSum = 0, 0
@@ -84,8 +65,8 @@ def load_tracks(fn, yid):
         m = json.loads(line.strip())
         tracks.append(Track(
             yid,
-            ts=np.array(m['frame_ts']).astype(float),
-            boxes=np.array(m['frame_bboxes']).astype(float),
+            ts=np.array(m['track_ts']).astype(float),
+            boxes=np.array(m['track_bbox']).astype(float),
             meta=m,
         ))
 
@@ -163,7 +144,7 @@ def extract_crop_nearest(frame, box, target_shape):
     return frame
 
 
-def extract_track(boxes, timestamps, reader, box_expansion=0.):
+def extract_track(boxes, timestamps, reader):
     timestamps = np.array(timestamps)
     boxes = np.array(boxes)
 
@@ -172,7 +153,7 @@ def extract_track(boxes, timestamps, reader, box_expansion=0.):
     std = int(0.66/ts_diff)
     boxes_smooth = np.stack([ndi.gaussian_filter(b, std) for b in boxes.T], 1)
 
-    # normalize aspect ratio across track
+    # make aspect ratio constant across the track
     x, y, w, h = boxes_smooth.copy().T
     cx, cy, ar = x + w/2, y + h/2, w/h
     avg_ar = ar.mean()
@@ -182,8 +163,6 @@ def extract_track(boxes, timestamps, reader, box_expansion=0.):
     else:              trg_ar = avg_ar
 
     # Adjust xywh
-    h = h * (1 + box_expansion)
-    w = w * (1 + box_expansion)
     h[ar > trg_ar] = w[ar > trg_ar] / trg_ar
     w[ar < trg_ar] = h[ar < trg_ar] * trg_ar
 
@@ -221,98 +200,62 @@ def extract_track(boxes, timestamps, reader, box_expansion=0.):
 
 
 class ObjectTrackExtractor:
-    def __init__(self, base_dir, db_meta_file=None, dataset_name='lvis', num_chunks=1, chunk_id=1):
-        self.db_meta_file = None
-        if db_meta_file is not None:
-            assert db_meta_file is not None and os.path.exists(base_dir)
-            self.db_meta_file = db_meta_file
-
-        self.num_chunks = num_chunks
-        self.chunk_id = chunk_id
-        self.box_exp = [0., 0.25, 0.5, 1.]
-        self.max_track_len = 30
-
+    def __init__(self, base_dir, yid_index_fn, dataset_name='TrackVerseLVIS', world_size=1, rank=0):
         self.base_dir = base_dir
+        self.index_fn = yid_index_fn
         self.dataset_name = dataset_name
+        self.world_size = world_size
+        self.rank = rank
 
         self.videos_mp4_dir = f"{self.base_dir}/videos_mp4"
+        self.tracks_meta_dir = f"{self.base_dir}/tracks_meta/{self.dataset_name}"
         self.tracks_mp4_dir = f"{self.base_dir}/tracks_mp4/{self.dataset_name}"
         misc_utils.check_dirs(self.tracks_mp4_dir)
 
-    def get_jobs_from_meta_dir(self):
-        import glob
-        parse_yid = lambda t: t.split('/')[-1][:11]
-        all_files = sorted(glob.glob(f"{self.base_dir}/tracks_meta/{self.dataset_name}/*/*.gzip"))
-        for fn in all_files[self.chunk_id::self.num_chunks]:
-            yid = parse_yid(fn)
-            tracks = load_tracks(fn, yid)
-            if tracks:
-                yield {'yid': yid, 'tracks': tracks}
-
-    def get_jobs_from_db_file(self):
-        to_skip = self.chunk_id + 1
-        job = {'yid': None, 'tracks': []}
-        for line in tqdm.tqdm(gzip.open(self.db_meta_file, mode='rt')):
-            m = json.loads(line.strip())
-            yid = m['yid']
-            if yid != job['yid']:
-                to_skip -= 1
-                if len(job['tracks']) > 0:
-                    yield job
-                    to_skip = self.num_chunks - 1
-                job = {'yid': yid, 'url': f"https://www.youtube.com/watch?v={yid}", 'tracks': []}
-            if to_skip != 0:
+    def scheduled_jobs(self):
+        for job_id, ln in enumerate(open(self.index_fn)):
+            youtube_id = ln.strip()
+            if len(youtube_id) != 11:
                 continue
+            if job_id % self.world_size == self.rank:
+                meta_fn = os.path.join(self.tracks_meta_dir, youtube_id[:2], f"{youtube_id}-meta.jsonl.gzip")
+                tracks = load_tracks(meta_fn, youtube_id)
+                yield job_id, youtube_id, tracks
 
-            job['tracks'].append(
-                Track(
-                    yid,
-                    ts=np.array(m['frame_ts']).astype(float),
-                    boxes=np.array(m['frame_bboxes']).astype(float),
-                    meta=m
-                )
-            )
-        if to_skip < 0 and job['yid'] is not None:
-            yield job
+    def extract_tracks_from_video(self, vid, tracks, job_id):
+        # Check video download
+        video_filepath = os.path.join(self.videos_mp4_dir, vid[:2], vid + '.mp4')
+        if not misc_utils.check_video(video_filepath):
+            print(f"Video loading error. Skipping video file: {video_filepath}", flush=True)
+            return
 
-    def extract_tracks_from_video(self, vid, video_filepath, tracks, job_id):
         # Extract object tracks
+        print(f'[{job_id}][{vid}] Start track extraction', flush=True)
         for t, track in enumerate(tracks):
-            for box_exp in self.box_exp:
-                track_fn = f"{self.tracks_mp4_dir}/BoxExp{box_exp}/{track.mp4_filename}"
-                misc_utils.check_dirs(os.path.dirname(track_fn))
+            track_fn = f"{self.tracks_mp4_dir}/{track.fn}"
+            misc_utils.check_dirs(os.path.dirname(track_fn))
 
-                # Check if already extracted
-                if misc_utils.check_video(track_fn):
-                    continue
-                print(f'[{job_id}][{vid}][Track {t+1}/{len(tracks)}][BoxExp {box_exp}][{track.mp4_filename}].', flush=True)
+            # Check if already extracted
+            if misc_utils.check_video(track_fn):
+                continue
+            print(f'[{job_id}][{vid}][Track {t+1}/{len(tracks)}][{track.fn}].', flush=True)
 
-                try:    # Somehow, we have a small number of tracks that start after the video ends(??)
-                    vreader = VideoReader(video_filepath, start_time=track.ts[0], duration=min(track.ts[-1]-track.ts[0], self.max_track_len))
-                except:
-                    continue
-                vwriter = None  # Lazy init of vwriter, bc frame size is unknown until 1st frame extraction.
-                for frame in extract_track(boxes=track.boxes, timestamps=track.ts, reader=vreader, box_expansion=box_exp):
-                    if vwriter is None:
-                        vwriter = VideoWriter(track_fn, int(round(vreader.rate)), frame.shape[:2])
-                    vwriter.write(frame)
-                vwriter.container.close() if vwriter is not None else None
+            try:    # Somehow, we found a small number of tracks that start after the video ends(??)
+                vreader = VideoReader(video_filepath, start_time=track.ts[0], duration=min(track.ts[-1]-track.ts[0], 180))
+            except:
+                continue
+            vwriter = None  # Lazy init of vwriter, bc frame size is unknown until 1st frame extraction.
+            for frame in extract_track(boxes=track.boxes, timestamps=track.ts, reader=vreader):
+                if vwriter is None:
+                    vwriter = VideoWriter(track_fn, int(round(vreader.rate)), frame.shape[:2])
+                vwriter.write(frame)
+            vwriter.container.close() if vwriter is not None else None
 
         print(f'[{job_id}][{vid}] Track extraction done.', flush=True)
 
     def extract_all(self):
-        get_jobs_fcn = self.get_jobs_from_db_file if self.db_meta_file is not None else self.get_jobs_from_meta_dir
-        for job_id, meta in enumerate(get_jobs_fcn()):
-            vid, tracks = meta['yid'], meta['tracks']
-            print(f'[{job_id}][{vid}] Start', flush=True)
-
-            # Check video download
-            video_filepath = os.path.join(self.videos_mp4_dir, vid[:2], vid + '.mp4')
-            if not misc_utils.check_video(video_filepath):
-                print(f"Video loading error. Skipping video file: {video_filepath}", flush=True)
-                return
-
-            self.extract_tracks_from_video(vid, video_filepath, tracks, job_id=f"{job_id}")
+        for job_id, youtube_id, tracks in self.scheduled_jobs():
+            self.extract_tracks_from_video(youtube_id, tracks, job_id=f"{job_id}")
 
 
 class Launcher:
@@ -321,19 +264,18 @@ class Launcher:
             print(f"{k}: {args.__dict__[k]}")
         ObjectTrackExtractor(
             args.base_dir,
-            db_meta_file=args.db_meta_file,
+            yid_index_fn=args.yid_index_fn,
             dataset_name=args.dataset_name,
-            num_chunks=args.num_chunks,
-            chunk_id=args.chunk_id
+            world_size=args.world_size,
+            rank=args.rank
         ).extract_all()
 
 
 if __name__ == '__main__':
     args = parse_arguments()
-
     if args.slurm:
         job_names = os.popen('squeue -o %j -u $USER').read().split("\n")
-        slurm_job_name = f"extract-tracks-{args.db_meta_file.split('/')[-1].split('.jsonl')[0]}-{args.num_chunks}-{args.chunk_id}"
+        slurm_job_name = f"extract-tracks-{args.rank}of{args.world_size}"
         if slurm_job_name in job_names:
             print(f'Skipping {slurm_job_name} because already in queue')
             exit(0)
@@ -341,7 +283,7 @@ if __name__ == '__main__':
         # Submit jobs
         executor = submitit.AutoExecutor(folder='./slurm_logs/', slurm_max_num_timeout=20, cluster=None)
         executor.update_parameters(
-            timeout_min=1440,                # Requeue every 12hr
+            timeout_min=1440,                # Requeue every 24hr
             slurm_partition=args.partition,
             cpus_per_task=4,
             gpus_per_node=0,

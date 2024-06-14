@@ -1,10 +1,8 @@
 import sys
-import os
 import torch
-import av
 
-sys.path.insert(0, '../detic')
-sys.path.insert(0, '../detic/third_party/CenterNet2/')
+sys.path.insert(0, 'detic')
+sys.path.insert(0, 'detic/third_party/CenterNet2/')
 
 from centernet.config import add_centernet_config
 from detic.config import add_detic_config
@@ -100,8 +98,7 @@ class DETIC(object):
         reset_cls_test(self.predictor.model, classifier, num_classes)
 
 
-def build_detic(class_desc, args, gpu_id=0):
-    # build detic model
+def build_detic(class_prompts, frame_size, nms, conf, gpu_id=0):
     model_cfg = 'detic/configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml'
     model_weights = 'detic/models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth'
 
@@ -109,9 +106,9 @@ def build_detic(class_desc, args, gpu_id=0):
     cfg = setup_detic_cfg(
         config_file=model_cfg,
         model_weights=model_weights,
-        confidence_threshold=args.conf,
-        nms_threshold=args.nms,
-        frame_size=args.frame_size,
+        confidence_threshold=conf,
+        nms_threshold=nms,
+        frame_size=frame_size,
         gpu_id=gpu_id
     )
-    return DETIC(cfg, dictionary, custom=class_desc)
+    return DETIC(cfg, dictionary, custom=class_prompts)
