@@ -43,5 +43,4 @@ class YoutubeDL(object):
         self.downl_tracker.add(youtube_id)
         if down_result != 0:
             return STATUS.FAIL, None
-
         return STATUS.SUCCESS, filename

@@ -201,6 +201,15 @@ def extract_track(boxes, timestamps, reader):
 
 class ObjectTrackExtractor:
     def __init__(self, base_dir, yid_index_fn, dataset_name='TrackVerseLVIS', world_size=1, rank=0):
+        """ Extract object tracks from videos.
+            Args:
+                base_dir (str): The base directory.
+                yid_index_fn (str): The path to the database jsonl meta file.
+                dataset_name (str, optional): The class domain of the dataset. 
+                box_exp (list, optional): The box expansion values. 
+                world_size (int, optional): How many chunks to split the work in. 
+                rank (int, optional): Chunk ID.
+        """
         self.base_dir = base_dir
         self.index_fn = yid_index_fn
         self.dataset_name = dataset_name

@@ -139,3 +139,6 @@ detic/models/
 yfewshot_eval.md
 yjobs.md
 .vscode/
+
+# data
+datasets/
