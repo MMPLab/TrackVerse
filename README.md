@@ -1,3 +1,5 @@
+<img src="./doc/figs/banner.gif" alt="trackverse" width="80%"/>
+
 # TrackVerse: A Large-scale Dataset of Object Tracks
 TrackVerse is the largest video dataset that ensures object-centricity, class diversity and rich object motions and states to date, offering a unique playground to explore unsupervised representation learning from object dynamics, moving beyond static object appearance. 
 It is built using an automated collection pipeline, shown below, and can be easily scaled up without any manual annotation.
