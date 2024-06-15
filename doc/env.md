@@ -30,5 +30,5 @@ pip install yt-dlp hydra-core submitit lap cython_bbox matplotlib tqdm av scened
 ```
 
 - Install [pytorch](https://pytorch.org/) and [detectron2](https://detectron2.readthedocs.io/tutorials/install.html)
-- Follow DETIC install [instructions](object_tracks_db/detic/docs/INSTALL.md).
+- Follow DETIC install [instructions](../detic/docs/INSTALL.md).
 - Follow ByteTrack install [instructions](https://github.com/ifzhang/ByteTrack#readme).

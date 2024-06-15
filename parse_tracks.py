@@ -39,7 +39,7 @@ def parse_arguments():
                         help='Dataset directory')
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')
-    parser.add_argument('--dataset_name', default="TrackVerseLVIS", help='Name of dataset.')
+    parser.add_argument('--dataset_domain', default="TrackVerseLVIS", help='The class domain of the dataset. ')
     parser.add_argument('--class_prompts', default="assets/lvis-prompts.txt",
                         help='TSV file of class names and prompts.')
 
@@ -119,7 +119,7 @@ class ObjectTracksParser(object):
     def __init__(self, args):
         self.base_dir = args.base_dir
         self.index_fn = args.yid_index_fn
-        self.dataset_name = args.dataset_name
+        self.dataset_domain = args.dataset_domain
         self.world_size = args.world_size
         self.rank = args.rank
         self.args = args
@@ -127,7 +127,7 @@ class ObjectTracksParser(object):
         # Output directories
         self.videos_dir = os.path.join(self.base_dir, 'videos_mp4')
         self.segments_dir = os.path.join(self.base_dir, 'videos_segm')
-        self.tracks_meta_dir = os.path.join(self.base_dir, 'tracks_meta', self.dataset_name)
+        self.tracks_meta_dir = os.path.join(self.base_dir, 'tracks_meta', self.dataset_domain)
         misc_utils.check_dirs(self.tracks_meta_dir)
         self.progress_tracker = misc_utils.ProgressTracker(os.path.join(self.tracks_meta_dir, 'completed.txt'))
 

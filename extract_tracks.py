@@ -24,7 +24,7 @@ def parse_arguments():
                         help='Dataset directory')
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')
-    parser.add_argument('--dataset_name', default="TrackVerseLVIS", help='Name of dataset.')
+    parser.add_argument('--dataset_domain', default="TrackVerseLVIS", help='The class domain of the dataset. ')
     return parser.parse_args()
 
 
@@ -33,7 +33,7 @@ class Track:
         self.yid = yid
         self.ts = ts
         self.boxes = boxes
-        self.fn = meta['fn']
+        self.fn = meta['mp4_filename']
         self.meta = meta
 
     def overlap(self, track2):
@@ -200,25 +200,25 @@ def extract_track(boxes, timestamps, reader):
 
 
 class ObjectTrackExtractor:
-    def __init__(self, base_dir, yid_index_fn, dataset_name='TrackVerseLVIS', world_size=1, rank=0):
+    def __init__(self, base_dir, yid_index_fn, dataset_domain='TrackVerseLVIS', world_size=1, rank=0):
         """ Extract object tracks from videos.
             Args:
                 base_dir (str): The base directory.
                 yid_index_fn (str): The path to the database jsonl meta file.
-                dataset_name (str, optional): The class domain of the dataset. 
+                dataset_domain (str, optional): The class domain of the dataset. 
                 box_exp (list, optional): The box expansion values. 
                 world_size (int, optional): How many chunks to split the work in. 
                 rank (int, optional): Chunk ID.
         """
         self.base_dir = base_dir
         self.index_fn = yid_index_fn
-        self.dataset_name = dataset_name
+        self.dataset_domain = dataset_domain
         self.world_size = world_size
         self.rank = rank
 
         self.videos_mp4_dir = f"{self.base_dir}/videos_mp4"
-        self.tracks_meta_dir = f"{self.base_dir}/tracks_meta/{self.dataset_name}"
-        self.tracks_mp4_dir = f"{self.base_dir}/tracks_mp4/{self.dataset_name}"
+        self.tracks_meta_dir = f"{self.base_dir}/tracks_meta/{self.dataset_domain}"
+        self.tracks_mp4_dir = f"{self.base_dir}/tracks_mp4/{self.dataset_domain}"
         misc_utils.check_dirs(self.tracks_mp4_dir)
 
     def scheduled_jobs(self):
@@ -274,7 +274,7 @@ class Launcher:
         ObjectTrackExtractor(
             args.base_dir,
             yid_index_fn=args.yid_index_fn,
-            dataset_name=args.dataset_name,
+            dataset_domain=args.dataset_domain,
             world_size=args.world_size,
             rank=args.rank
         ).extract_all()
