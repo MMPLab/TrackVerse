@@ -39,6 +39,7 @@ subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
 ## Quickstart
 Get started with TrackVerse by setting up your environment and exploring the dataset through a demonstration.
 - **Conda Environment:** Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
+- **Clone the Repository:** `git clone --recurse-submodules https://github.com/MMPLab/TrackVerse.git`
 - **Demo:** The [dataset_demo.ipynb](dataset_demo.ipynb) notebook guides you through the process of downloading and accessing the dataset.
 
 

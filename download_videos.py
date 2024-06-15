@@ -14,7 +14,7 @@ def parse_arguments():
     parser.add_argument("--world_size", default=1, type=int, help="scheduling chunks")
     parser.add_argument("--rank", default=0, type=int, help="scheduling chunk id")
     # Downloader args
-    parser.add_argument('--base_dir', default='/home/pmorgado/datasets/TrackVerse/',
+    parser.add_argument('--base_dir', default='./TrackVerse',
                         help='Dataset directory')
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')

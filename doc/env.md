@@ -16,7 +16,7 @@ conda activate trackverse
 
 # detectron2 does not work with latest pytorch. We use pytorch==1.10 with cuda==11.3.
 conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch
-python -m pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu113/torch1.10/index.html
+python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 
 # Install detic requirements
 # Default fasttext did not work for us. We used fasttext==0.9.1.
@@ -29,6 +29,7 @@ mkdir detic/models && wget https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_
 pip install yt-dlp hydra-core submitit lap cython_bbox matplotlib tqdm av scenedetect jupyter open-clip-torch 'Pillow<10'
 ```
 
+Reference:
 - Install [pytorch](https://pytorch.org/) and [detectron2](https://detectron2.readthedocs.io/tutorials/install.html)
 - Follow DETIC install [instructions](../detic/docs/INSTALL.md).
 - Follow ByteTrack install [instructions](https://github.com/ifzhang/ByteTrack#readme).
