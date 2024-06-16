@@ -14,7 +14,7 @@ from torchvision.models import resnet50
 from torchvision.models.optical_flow import raft_large
 from torchvision import transforms as T
 
-import avio
+from utils import avio
 from utils import misc as misc_utils
 
 
@@ -23,9 +23,9 @@ def parse_arguments():
     parser.add_argument("--slurm", default=False, action="store_true")
     parser.add_argument("--partition", default="research")
     parser.add_argument('--base_dir', default='.', type=str, help='Working Directory')
-    parser.add_argument('--dataset_name', default='lvis', type=str, help='Working Directory')
-    parser.add_argument('--db_meta_file',  default='data/tracks_meta/in1k_coco_x1000',type=str,
-                        help='Directory containing parsed tracks.')
+    parser.add_argument('--dataset_domain', default='TrackVerseLVIS', help='The class domain of the dataset.')
+    parser.add_argument('--db_meta_file',  default='tracks_subsets/TrackVerseLVIS-Full-4M.jsonl.gzip',type=str,
+                        help='The path to the database jsonl meta file.')
     parser.add_argument('--metric', default='embeddings', type=str,
                         choices=["embeddings", "motion", 'blur'],
                         help='Curation criterion')
@@ -35,16 +35,16 @@ def parse_arguments():
 
 
 class VisualMetrics(object):
-    def __init__(self, base_dir, dataset_name, db_meta_file, metric='embedding', world_size=1, rank=0):
+    def __init__(self, base_dir, dataset_domain, db_meta_file, metric='embedding', world_size=1, rank=0):
         self.base_dir = base_dir
-        self.dataset_name = dataset_name
-        self.db_meta_file = db_meta_file
+        self.dataset_domain = dataset_domain
+        self.db_meta_file = f"{base_dir}/{db_meta_file}"
         self.metric = metric
         self.world_size = world_size
         self.rank = rank
 
-        self.tracks_mp4_dir = f"{self.base_dir}/tracks_mp4/{self.dataset_name}"
-        self.tracks_metric_dir = f"{self.base_dir}/tracks_{self.metric}/{self.dataset_name}"
+        self.tracks_mp4_dir = f"{self.base_dir}/tracks_mp4/{self.dataset_domain}"
+        self.tracks_metric_dir = f"{self.base_dir}/tracks_{self.metric}/{self.dataset_domain}"
         misc_utils.check_dirs(self.tracks_metric_dir)
         self.procs_tracker = misc_utils.ProgressTracker(os.path.join(self.tracks_metric_dir, 'completed.txt'))
         self.model = None
@@ -146,7 +146,7 @@ class VisualMetrics(object):
 class Launcher:
     def __call__(self, args):
         VisualMetrics(
-            args.base_dir, args.dataset_name, args.db_meta_file,
+            args.base_dir, args.dataset_domain, args.db_meta_file,
             metric=args.metric, world_size=args.world_size, rank=args.rank
         ).process_all()
 

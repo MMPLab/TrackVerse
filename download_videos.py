@@ -24,7 +24,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-class TrackVerseDL(object):
+class VideoDownloader(object):
     def __init__(self, args):
         self.base_dir = args.base_dir
         self.index_fn = args.yid_index_fn
@@ -74,7 +74,7 @@ class TrackVerseDL(object):
 class Launcher:
     def __call__(self, args):
         torch.multiprocessing.set_start_method('spawn')
-        TrackVerseDL(args).process_all()
+        VideoDownloader(args).process_all()
 
 
 if __name__ == '__main__':

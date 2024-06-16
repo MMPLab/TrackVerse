@@ -42,7 +42,7 @@ subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
 Get started with TrackVerse by setting up your environment and exploring the dataset through a demonstration.
 - **Conda Environment:** Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
 - **Clone the Repository:** `git clone --recurse-submodules https://github.com/MMPLab/TrackVerse.git`
-- **Demo:** The [dataset_demo.ipynb](dataset_demo.ipynb) notebook guides you through the process of downloading and accessing the dataset.
+- **Demo:** The [dataset_demo.ipynb](dataset_demo.ipynb) notebook guides you through the process of downloading and accessing TrackVerse from the provided JSONL file and the process of using the pipeline to extract object tracks.
 
 
 ## Download TrackVerse
@@ -72,10 +72,7 @@ Below is a detailed explanation of the keys present in each line of these JSONL 
 - `mp4_filename` - Filename of the track produced by running the track extraction pipeline.
 </details>
 
-To download all tracks specified in a given JSONL file, run:
-```
-
-```
+To extract TrackVerse from the JSONL file, follow the [download](doc/download.md) instruction.
 
 ## Generate Customized TrackVerse Dataset
 You can also create your own customized dataset of object tracks, for example, using different vocabulary, different source videos or different curation strategies.

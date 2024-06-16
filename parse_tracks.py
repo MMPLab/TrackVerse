@@ -39,7 +39,7 @@ def parse_arguments():
                         help='Dataset directory')
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')
-    parser.add_argument('--dataset_domain', default="TrackVerseLVIS", help='The class domain of the dataset. ')
+    parser.add_argument('--dataset_domain', default="TrackVerseLVIS", help='The class domain of the dataset.')
     parser.add_argument('--class_prompts', default="assets/lvis-prompts.txt",
                         help='TSV file of class names and prompts.')
 

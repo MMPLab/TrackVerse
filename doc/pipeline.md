@@ -11,8 +11,8 @@ The dataset of object tracks was generated as follows:
 </div>
 
 <!---------------------------------------------------------------------------------------------->
-
-<details><summary><h3>Step 1-3: Download videos, find and filter segments</h3></summary>
+<h3>Step 1-3: Download videos, find and filter segments</h3>
+<details><summary></summary>
 
 For our dataset, we downloaded 64K YouTube videos, sampled from the [HD-VILA-100M](https://github.com/microsoft/XPretrain/tree/main/hd-vila-100m) dataset, and specified in `assets/trackverse-yids-all.txt`. Videos were acquired at 720p resolution and original frame rates.
 
@@ -29,7 +29,7 @@ For our dataset, we downloaded 64K YouTube videos, sampled from the [HD-VILA-100
 
 ```bash
 WORLD_SIZE=128
-for ((JOB_NO=0; i<${WORLD_SIZE}; i++)); do
+for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python download_videos.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --yid_index_fn assets/trackverse-yids-all.txt \
@@ -45,8 +45,8 @@ This code creates 2 folders under `${TRACKVERSE_DB}`:
 </details>
 
 <!---------------------------------------------------------------------------------------------->
-
-<details><summary><h3>Step 3a: Deface</h3></summary>
+<h3>Step 3a: Deface</h3>
+<details><summary></summary>
 
 To comply with [GDPR](https://gdpr.eu/what-is-gdpr/), we also try to blur out all faces and license plates appearing in the video using [Deface](https://github.com/ORB-HD/deface)  
 
@@ -64,8 +64,8 @@ chmod a+x gdpr_blur_faces.sh
 
 <!---------------------------------------------------------------------------------------------->
 
-
-<details><summary><h3>Step 4: Parse Object Tracks</h3></summary>
+<h3>Step 4: Parse Object Tracks</h3>
+<details><summary></summary>
 Next, we parse all object tracks within each video segment using DETIC and ByteTrack.
 
 > [!NOTE]
@@ -78,11 +78,11 @@ set of categories for DETIC to detect by proving a new list of class prompts.
 
 ```bash
 WORLD_SIZE=128
-for ((JOB_NO=0; i<${WORLD_SIZE}; i++)); do
+for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python parse_tracks.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --yid_index_fn assets/trackverse-yids-all.txt \
-        --dataset_name TrackVerseLVIS \
+        --dataset_domain TrackVerseLVIS \
         --class_prompts assets/lvis-prompts.txt \
         --world_size ${WORLD_SIZE} \
         --rank ${JOB_NO}
@@ -93,17 +93,17 @@ This code stores all parsed track metadata in the folder `${TRACKVERSE_DB}/track
 </details>
 
 <!---------------------------------------------------------------------------------------------->
-
-<details><summary><h3>Step 4a: Save tracks as video clips</h3></summary>
+<h3>Step 4a: Save tracks as video clips</h3>
+<details><summary></summary>
 It's now time to extract all tracks into mp4 files. To optimize the files for deep learning workloads, we save the video file using a small key-frame rate.
 
 ```bash
 WORLD_SIZE=128
-for ((JOB_NO=0; i<${WORLD_SIZE}; i++)); do
+for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python extract_tracks.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --yid_index_fn assets/trackverse-yids-all.txt \
-        --dataset_name TrackVerseLVIS \
+        --dataset_domain TrackVerseLVIS \
         --world_size ${WORLD_SIZE} \
         --rank ${JOB_NO}
 done
@@ -114,8 +114,8 @@ All tracks are saved to `${TRACKVERSE_DB}/tracks_mp4`.
 </details>
 
 <!---------------------------------------------------------------------------------------------->
-
-<details><summary><h3>Step 5: Dataset curation</h3></summary>
+<h3>Step 5: Dataset curation</h3>
+<details><summary></summary>
 Finally, we define subsets of object tracks with more balanced class distributions by selecting for each class the `K` samples with the highest classification logits weighted by the objectness score.
 
 >[!NOTE]
@@ -127,7 +127,7 @@ Finally, we define subsets of object tracks with more balanced class distributio
 ```bash
 # First create a single index file containing all track metadata extracted to ${BASE_DIR}/tracks_meta
 INDEX_FILE="tracks_subsets/TrackVerseLVIS/TrackVerseLVIS-Full-4M.jsonl.gzip"
-python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --dataset_name TrackVerseLVIS --action index --num_workers 16   # num_workers speed up reading of the metadata
+python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --dataset_domain TrackVerseLVIS --action index --num_workers 16   # num_workers speed up reading of the metadata
 
 # Then sample both random and class-balanced subsets
 python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action sample_random --N 82 184 259 392
@@ -137,29 +137,29 @@ python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action s
 </details>
 
 <!---------------------------------------------------------------------------------------------->
-
-<details><summary><h3>Step 5a: Dataset curation (Bonus)</h3></summary>
+<h3>Step 5a: Dataset curation (Bonus)</h3>
+<details><summary></summary>
 We have also implemented motion and diversity-based curation strategies, by ensuring the selected tracks meet certain threshold criteria. To use these strategies, we first need to generate either the motion or feature representations used to encode track appearance.
 
 ```bash
 # Compute embeddings and optical flow
-# Saves tracks under ${BASE_DIR}/tracks_${METRIC}/${DB_NAME}
+# Saves tracks under ${BASE_DIR}/tracks_${METRIC}/${DB_DOMAIN}
 WORLD_SIZE=128
 INDEX_FILE="tracks_subsets/TrackVerseLVIS-Full-4M.jsonl.gzip"
-DB_NAME="TrackVerseLVIS"
-for ((JOB_NO=0; i<${WORLD_SIZE}; i++)); do
+DB_DOMAIN="TrackVerseLVIS"
+for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python visual_metrics.py --slurm \
         --base_dir ${BASE_DIR} \
-        --dataset_name ${DB_NAME} \
-        --index_file ${INDEX_FILE} \
+        --dataset_domain ${DB_DOMAIN} \
+        --db_meta_file ${INDEX_FILE} \
         --metric motion \
         --world_size ${WORLD_SIZE} \
         --rank ${JOB_NO}
 done
-for ((JOB_NO=0; i<${WORLD_SIZE}; i++)); do
+for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python visual_metrics.py --slurm \
         --base_dir ${BASE_DIR} \
-        --dataset_name ${DB_NAME} \
+        --dataset_domain ${DB_DOMAIN} \
         --db_meta_file ${INDEX_FILE} \
         --metric embeddings \
         --world_size ${WORLD_SIZE} \

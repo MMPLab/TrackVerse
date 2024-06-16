@@ -17,7 +17,7 @@ def parse_arguments():
     parser.add_argument("--slurm", default=False, action="store_true")
     parser.add_argument("--partition", default="research")
     parser.add_argument('--base_dir', default='.', type=str, help='Working Directory')
-    parser.add_argument('--dataset_name', default='hdvila_lvis', type=str, help='Working Directory')
+    parser.add_argument('--dataset_domain', default='hdvila_lvis', type=str, help='Working Directory')
     parser.add_argument('--index_file',  default='tracks_subsets/hdvila_lvis/LVIS-4M.jsonl.gzip',
                         help='File containing all parsed tracks.')
     parser.add_argument('--action', default='embeddings', type=str,
@@ -79,9 +79,9 @@ def calculate_iou(bbox1, bbox2):
 
 
 class Curator(object):
-    def __init__(self, base_dir, dataset_name, index_file, num_workers=4):
+    def __init__(self, base_dir, dataset_domain, index_file, num_workers=4):
         self.base_dir = base_dir
-        self.dataset_name = dataset_name
+        self.dataset_domain = dataset_domain
         self.index_file = os.path.join(self.base_dir, index_file)
         self.num_workers = num_workers
 
@@ -103,7 +103,7 @@ class Curator(object):
 
     def get_emb(self, tid):
         try:
-            return np.load(f"{self.base_dir}/tracks_embeddings/{self.dataset_name}/{self.track_fns[tid].replace('.mp4', '.npy')}")
+            return np.load(f"{self.base_dir}/tracks_embeddings/{self.dataset_domain}/{self.track_fns[tid].replace('.mp4', '.npy')}")
         except Exception:
             return np.randn(2048)
 
@@ -123,7 +123,7 @@ class Curator(object):
         # Split up processing into multiple chunks
         pool = mp.Pool(self.num_workers)
         num_chunks = 32
-        meta_fns = sorted(glob.glob(f'{self.base_dir}/tracks_meta/{self.dataset_name}/*/*.gzip'))
+        meta_fns = sorted(glob.glob(f'{self.base_dir}/tracks_meta/{self.dataset_domain}/*/*.gzip'))
         results = [
             pool.apply_async(self.index_worker, args=(self.index_file + f'.part{ck}', meta_fns[ck::num_chunks], ck))
             for ck in range(num_chunks)]
@@ -244,7 +244,7 @@ class Curator(object):
     def constrained_sampling(self, sorted_population, N, min_nn_dist=0., max_spt_iou=1., iou_tbuff=float('inf'), min_motion=0.):
         N = min(N, len(sorted_population))
         sorted_track_names = [self.track_fns[i] for i in sorted_population]
-        db = VisualMetricsDB(self.base_dir, self.dataset_name,
+        db = VisualMetricsDB(self.base_dir, self.dataset_domain,
                              track_fns=sorted_track_names, track_ids=sorted_population,
                              return_embs=min_nn_dist>0, return_motion_stats=min_motion>0)
         loader = DataLoader(db, num_workers=self.num_workers, shuffle=False, batch_size=1)
@@ -311,7 +311,7 @@ class Curator(object):
         sorted_seq = self.sort_population(range(len(self.track_fns)), T=float('inf'))
         for N in N_list:
             subset_name = f'N{N}K'
-            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}-{N}K-RND.jsonl.gzip'
+            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_domain}-{N}K-RND.jsonl.gzip'
             selected_tracks[subset_name] = [self.track_tid[idx] for idx in sorted_seq[:N*1000]]
         self.save_subsets(subset_gzip, selected_tracks)
 
@@ -349,7 +349,7 @@ class Curator(object):
                 selected_tracks[subset_name] = [self.track_tid[idx] for cls in self.class2idx
                                                 for idx in sampled_seq[f'Logit-T{temp}'][cls][:Nc]]
                 N = len(selected_tracks[subset_name])
-                subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}-CB{Nc}-{N//1000}K-T{temp}{suffix}.jsonl.gzip'
+                subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_domain}-CB{Nc}-{N//1000}K-T{temp}{suffix}.jsonl.gzip'
 
         self.save_subsets(subset_gzip, selected_tracks)
 
@@ -372,7 +372,7 @@ class Curator(object):
         for ep in range(epochs):
             converged = True
             remaining_fns = [self.track_fns[tid] for tid in remaining_idx]
-            db = VisualMetricsDB(self.base_dir, self.dataset_name, remaining_fns, remaining_idx, return_embs=True)
+            db = VisualMetricsDB(self.base_dir, self.dataset_domain, remaining_fns, remaining_idx, return_embs=True)
             loader = DataLoader(db, num_workers=self.num_workers, shuffle=True, batch_size=1)
             for it, data in enumerate(tqdm.tqdm(loader)):
                 idx = data['idx'][0].item()
@@ -429,7 +429,7 @@ class Curator(object):
                 minred_idx, cls = self.minimum_redundancy_curator(self.class2idx[cls], Nc, cls)
                 selected_tracks[subset_name] += [self.track_tid[idx] for idx in minred_idx]
             N = len(selected_tracks[subset_name])
-            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}-MinRed-CB{Nc}-{N//1000}K.jsonl.gzip'
+            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_domain}-MinRed-CB{Nc}-{N//1000}K.jsonl.gzip'
         self.save_subsets(subset_gzip, selected_tracks)
 
     def sample_max_motion(self, Nc_list):
@@ -444,7 +444,7 @@ class Curator(object):
         for i, cls in enumerate(self.class2idx):
             print(f"({i}/{len(self.class2idx)}) Loading motion for class {cls}")
             track_fns = [self.track_fns[i] for i in self.class2idx[cls]]
-            db = VisualMetricsDB(self.base_dir, self.dataset_name, track_fns=track_fns, track_ids=self.class2idx[cls], return_motion_stats=True)
+            db = VisualMetricsDB(self.base_dir, self.dataset_domain, track_fns=track_fns, track_ids=self.class2idx[cls], return_motion_stats=True)
             loader = DataLoader(db, num_workers=self.num_workers, batch_size=64)
             track_idx, motion_q90 = [], []
             for dt in tqdm.tqdm(loader):
@@ -459,16 +459,16 @@ class Curator(object):
         for Nc in Nc_list:
             subset_name = f'MaxQ90Motion-Nc{Nc}'
             N = len(selected_tracks[subset_name])
-            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_name}-MaxQ90Motion-CB{Nc}-{N//1000}K.jsonl.gzip'
+            subset_gzip[subset_name] = f'{self.base_dir}/tracks_subsets/{self.dataset_domain}-MaxQ90Motion-CB{Nc}-{N//1000}K.jsonl.gzip'
 
         self.save_subsets(subset_gzip, selected_tracks)
 
 
 from torch.utils.data import Dataset, DataLoader
 class VisualMetricsDB(Dataset):
-    def __init__(self, base_dir, dataset_name, track_fns, track_ids, return_embs=False, return_motion_stats=False):
+    def __init__(self, base_dir, dataset_domain, track_fns, track_ids, return_embs=False, return_motion_stats=False):
         self.base_dir = base_dir
-        self.dataset_name = dataset_name
+        self.dataset_domain = dataset_domain
         self.track_fns = track_fns
         self.track_ids = track_ids
         self.return_embs = return_embs
@@ -478,7 +478,7 @@ class VisualMetricsDB(Dataset):
         return len(self.track_fns)
 
     def load_embeddings(self, idx):
-        fn = f"{self.base_dir}/tracks_embeddings/{self.dataset_name}/{self.track_fns[idx].replace('.mp4', '.npy')}"
+        fn = f"{self.base_dir}/tracks_embeddings/{self.dataset_domain}/{self.track_fns[idx].replace('.mp4', '.npy')}"
         try:
             return np.load(fn)
         except Exception:
@@ -486,7 +486,7 @@ class VisualMetricsDB(Dataset):
 
     def load_motion(self, idx):
         try:
-            flow_stats_fn = f"{self.base_dir}/tracks_motion/{self.dataset_name}/{self.track_fns[idx].replace('.mp4', '.npy')}"
+            flow_stats_fn = f"{self.base_dir}/tracks_motion/{self.dataset_domain}/{self.track_fns[idx].replace('.mp4', '.npy')}"
             flow_stats = np.load(flow_stats_fn).reshape(-1, 7).mean(0)
             return {'q50': flow_stats[-4], 'q75': flow_stats[-3], 'q90': flow_stats[-2]}
         except Exception:
@@ -505,7 +505,7 @@ class Launcher:
     def __call__(self, args):
         for k in args.__dict__:
             print(f"{k}: {args.__dict__[k]}")
-        curator = Curator(args.base_dir, args.dataset_name, args.index_file, num_workers=args.num_workers)
+        curator = Curator(args.base_dir, args.dataset_domain, args.index_file, num_workers=args.num_workers)
 
         if args.action == 'index':
             curator.index_db()

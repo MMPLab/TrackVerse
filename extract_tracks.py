@@ -24,7 +24,7 @@ def parse_arguments():
                         help='Dataset directory')
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')
-    parser.add_argument('--dataset_domain', default="TrackVerseLVIS", help='The class domain of the dataset. ')
+    parser.add_argument('--dataset_domain', default="TrackVerseLVIS", help='The class domain of the dataset.')
     return parser.parse_args()
 
 
@@ -200,36 +200,20 @@ def extract_track(boxes, timestamps, reader):
 
 
 class ObjectTrackExtractor:
-    def __init__(self, base_dir, yid_index_fn, dataset_domain='TrackVerseLVIS', world_size=1, rank=0):
+    def __init__(self, base_dir, dataset_domain='TrackVerseLVIS'):
         """ Extract object tracks from videos.
             Args:
                 base_dir (str): The base directory.
-                yid_index_fn (str): The path to the database jsonl meta file.
                 dataset_domain (str, optional): The class domain of the dataset. 
                 box_exp (list, optional): The box expansion values. 
-                world_size (int, optional): How many chunks to split the work in. 
-                rank (int, optional): Chunk ID.
         """
         self.base_dir = base_dir
-        self.index_fn = yid_index_fn
         self.dataset_domain = dataset_domain
-        self.world_size = world_size
-        self.rank = rank
 
         self.videos_mp4_dir = f"{self.base_dir}/videos_mp4"
         self.tracks_meta_dir = f"{self.base_dir}/tracks_meta/{self.dataset_domain}"
         self.tracks_mp4_dir = f"{self.base_dir}/tracks_mp4/{self.dataset_domain}"
         misc_utils.check_dirs(self.tracks_mp4_dir)
-
-    def scheduled_jobs(self):
-        for job_id, ln in enumerate(open(self.index_fn)):
-            youtube_id = ln.strip()
-            if len(youtube_id) != 11:
-                continue
-            if job_id % self.world_size == self.rank:
-                meta_fn = os.path.join(self.tracks_meta_dir, youtube_id[:2], f"{youtube_id}-meta.jsonl.gzip")
-                tracks = load_tracks(meta_fn, youtube_id)
-                yield job_id, youtube_id, tracks
 
     def extract_tracks_from_video(self, vid, tracks, job_id):
         # Check video download
@@ -262,22 +246,42 @@ class ObjectTrackExtractor:
 
         print(f'[{job_id}][{vid}] Track extraction done.', flush=True)
 
-    def extract_all(self):
-        for job_id, youtube_id, tracks in self.scheduled_jobs():
-            self.extract_tracks_from_video(youtube_id, tracks, job_id=f"{job_id}")
 
+def scheduled_jobs(extractor, yid_index_fn, rank=0, world_size=1):
+    """Generate jobs assigned to a particular worker based on the rank and total number of workers.
+
+    Args:
+        extractor (ObjectTrackExtractor): The object track extractor.
+        yid_index_fn (str): The file containing the index of youtube ids to download.
+        world_size (int, optional): How many chunks to split the work in. 
+        rank (int, optional): Chunk ID.
+
+    Yields:
+        tuple: A tuple containing the job index, YouTube ID, and the associated tracks data.
+    """
+    for job_id, ln in enumerate(open(yid_index_fn)):
+        youtube_id = ln.strip()
+        if len(youtube_id) != 11:
+            continue
+        if job_id % world_size == rank:
+            meta_fn = os.path.join(extractor.tracks_meta_dir, youtube_id[:2], f"{youtube_id}-meta.jsonl.gzip")
+            tracks = load_tracks(meta_fn, youtube_id)
+            yield job_id, youtube_id, tracks
+            
+def main_worker(args):
+    extractor = ObjectTrackExtractor(
+                args.base_dir,
+                yid_index_fn=args.yid_index_fn,
+                dataset_domain=args.dataset_domain,
+            )
+    for job_id, youtube_id, tracks in scheduled_jobs(extractor, args.yid_index_fn, args.rank, args.world_size):
+            extractor.extract_tracks_from_video(youtube_id, tracks, job_id=f"{job_id}")
 
 class Launcher:
     def __call__(self, args):
         for k in args.__dict__:
             print(f"{k}: {args.__dict__[k]}")
-        ObjectTrackExtractor(
-            args.base_dir,
-            yid_index_fn=args.yid_index_fn,
-            dataset_domain=args.dataset_domain,
-            world_size=args.world_size,
-            rank=args.rank
-        ).extract_all()
+        main_worker(args)
 
 
 if __name__ == '__main__':
