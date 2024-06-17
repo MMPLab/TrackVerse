@@ -40,9 +40,9 @@ subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
 
 ## Quickstart
 Get started with TrackVerse by setting up your environment and exploring the dataset through a demonstration.
-- **Conda Environment:** Follow the [environment setup guide](doc/env.md) to create the appropriate Conda environment.
-- **Clone the Repository:** `git clone --recurse-submodules https://github.com/MMPLab/TrackVerse.git`
-- **Demo:** The [dataset_demo.ipynb](dataset_demo.ipynb) notebook guides you through the process of downloading and accessing TrackVerse from the provided JSONL file and the process of using the pipeline to extract object tracks.
+1) **Set Up the Environment:** Refer to the [install guidelines](doc/env.md) for detailed instructions.
+2) **Clone the Repository:** `git clone --recurse-submodules https://github.com/MMPLab/TrackVerse.git`
+3) **Demo:** The [dataset_demo.ipynb](dataset_demo.ipynb) notebook guides you through the process of downloading and accessing TrackVerse from the provided JSONL file and the process of using the pipeline to extract object tracks.
 
 
 ## Download TrackVerse
@@ -85,5 +85,4 @@ You can also create your own customized dataset of object tracks, for example, u
 For support or inquiries, please open a [GitHub issue](https://github.com/MMPLab/TrackVerse/issues). If you have questions about technical details or need further assistance, feel free to reach out to us directly.
 
 ## License
-
 All code and data in this repo are available under the [MIT License](LICENSE) for research purposes only.
