@@ -22,15 +22,16 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='youtube video downloader')
     parser.add_argument("--slurm", default=False, action="store_true")
     parser.add_argument("--partition", default="research")
-    parser.add_argument('--base_dir', default='.', type=str, help='Working Directory')
-    parser.add_argument('--dataset_domain', default='TrackVerseLVIS', help='The class domain of the dataset.')
-    parser.add_argument('--db_meta_file',  default='tracks_subsets/TrackVerseLVIS-Full-4M.jsonl.gzip',type=str,
+    parser.add_argument('--world_size', default=1, type=int, help='Number of chunks')
+    parser.add_argument('--rank', default=0, type=int, help='Number of chunks')
+
+    parser.add_argument('--base_dir', default='./TrackVerseDB', type=str, help='Working Directory')
+    parser.add_argument('--dataset_domain', default='LVIS', help='The class domain of the dataset.')
+    parser.add_argument('--db_meta_file',  default='tracks_subsets/TrackVerseLVIS-Full.jsonl.gzip',type=str,
                         help='The path to the database jsonl meta file.')
     parser.add_argument('--metric', default='embeddings', type=str,
                         choices=["embeddings", "motion", 'blur'],
                         help='Curation criterion')
-    parser.add_argument('--world_size', default=1, type=int, help='Number of chunks')
-    parser.add_argument('--rank', default=0, type=int, help='Number of chunks')
     return parser.parse_args()
 
 
@@ -50,10 +51,12 @@ class VisualMetrics(object):
         self.model = None
 
     def scheduled_jobs(self):
-        for job_id, line in gzip.open(self.db_meta_file, mode='rt'):
-            if job_id * self.world_size == self.rank:
+        for job_id, line in enumerate(gzip.open(self.db_meta_file, mode='rt')):
+            if job_id % self.world_size == self.rank:
                 m = json.loads(line.strip())
-                yield job_id, m
+                track_fn = f"{self.tracks_mp4_dir}/{m['fn']}"
+                if misc_utils.check_video(track_fn):
+                    yield job_id, m
 
     @torch.no_grad()
     def compute_optical_flow(self, job_meta, job_id):
