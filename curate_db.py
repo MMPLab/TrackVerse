@@ -17,7 +17,7 @@ def parse_arguments():
     parser.add_argument("--slurm", default=False, action="store_true")
     parser.add_argument("--partition", default="research")
     parser.add_argument('--base_dir', default='.', type=str, help='Dataset Directory')
-    parser.add_argument('--dataset_domain', default='TrackVerse', type=str, help='The class domain of the dataset.')
+    parser.add_argument('--dataset_domain', default='TrackVerseDB', type=str, help='The class domain of the dataset.')
     parser.add_argument('--index_file',  default='tracks_subsets/hdvila_lvis/LVIS-4M.jsonl.gzip',
                         help='File containing all parsed tracks.')
     parser.add_argument('--action', default='embeddings', type=str,

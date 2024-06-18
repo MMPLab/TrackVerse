@@ -27,6 +27,21 @@ from utils import detic as detic_utils
 from utils import youtube as yt_utils
 from utils.misc import ProgressTracker
 
+class DETIC_CFG:
+    frame_size = 480
+    conf = 0.1
+    nms = 0.7
+    class_prompts = "assets/lvis-prompts.txt"   # TSV file of class names and prompts
+
+class BYTETRACK_CFG:
+    frame_rate = 16
+    track_thresh = 0.55             # tracking confidence threshold
+    track_iou_low_thresh = 0.5      # tracking confidence threshold
+    match_thresh = 0.45             # matching threshold for tracking
+    motion_weight = 0.4             # how much to weight motion information versus appearance information
+    track_buffer = 24               # buffer size to find lost tracks
+    mot20 = False
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='youtube video downloader')
@@ -35,32 +50,32 @@ def parse_arguments():
     parser.add_argument("--world_size", default=1, type=int, help="scheduling chunks")
     parser.add_argument("--rank", default=0, type=int, help="scheduling chunk id")
 
-    parser.add_argument('--base_dir', default='./TrackVerse',
+    parser.add_argument('--base_dir', default='./TrackVerseDB',
                         help='Dataset directory')
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')
-    parser.add_argument('--dataset_domain', default="TrackVerseLVIS", help='The class domain of the dataset.')
-    parser.add_argument('--class_prompts', default="assets/lvis-prompts.txt",
-                        help='TSV file of class names and prompts.')
-
-    # video loading args
-    parser.add_argument("--frame-rate", default=16, type=int, help="test conf")
-    parser.add_argument("--frame-size", default=480, type=int, help="test conf")
-    # detection args
-    parser.add_argument('--vocab', default='in1k_coco', type=str, choices=["in1k_coco", "lvis"], help='Vocabulary to search for.')
-    parser.add_argument("--conf", default=0.1, type=float, help="test conf")
-    parser.add_argument("--nms", default=0.7, type=float, help="test nms threshold")
-    # tracking args
-    parser.add_argument("--track_thresh", type=float, default=0.55, help="tracking confidence threshold")
-    parser.add_argument("--match_thresh", type=float, default=0.45, help="matching threshold for tracking")
-    parser.add_argument("--motion_weight", type=float, default=0.4, help="how much to weight motion information versus appearance information")
-    parser.add_argument("--track_iou_low_thresh", type=float, default=0.5, help="tracking confidence threshold")
-    parser.add_argument("--track_buffer", type=int, default=24, help="the frames for keep lost tracks")
-    parser.add_argument("--min-track-area", type=float, default=0.1, help='filter out tiny boxes')
-    parser.add_argument("--min-track-len", type=float, default=3., help='filter out small tracks')
-    parser.add_argument("--mot20", dest="mot20", default=False, action="store_true", help="test mot20.")
-
+    parser.add_argument('--dataset_domain', default="LVIS", help='The class domain of the dataset.')
+    parser.add_argument("--min_track_area", type=float, default=0.1, help='filter out tiny boxes')
+    parser.add_argument("--min_track_len", type=float, default=3., help='filter out small tracks')
     return parser.parse_args()
+
+
+@torch.no_grad()
+def get_max_batch_size(detector, frame_size):
+    bs = int(128 / 0.75)
+    while bs > 0:
+        try:
+            inputs = torch.randn((bs, frame_size[0], frame_size[1], 3))
+            detector.predictor(inputs.numpy())
+            return int(bs * 0.75)
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                bs = int(bs * 0.75)
+            else:
+                raise e
+        except AssertionError as e:
+            continue
+    return 1
 
 
 class ObjectTracksManager(object):
@@ -116,13 +131,34 @@ class ObjectTracksManager(object):
 
 
 class ObjectTracksParser(object):
-    def __init__(self, args):
-        self.base_dir = args.base_dir
-        self.index_fn = args.yid_index_fn
-        self.dataset_domain = args.dataset_domain
-        self.world_size = args.world_size
-        self.rank = args.rank
-        self.args = args
+    def __init__(self, base_dir, yid_index_fn, dataset_domain, detic_cfg, bytetrack_cfg, min_track_area=0.1, min_track_len=3., world_size=1, rank=0):
+        self.base_dir = base_dir
+        self.index_fn = yid_index_fn
+        self.dataset_domain = dataset_domain
+        self.world_size = world_size
+        self.rank = rank
+
+        self.frame_size = detic_cfg.frame_size
+        self.frame_rate = bytetrack_cfg.frame_rate
+        self.min_track_area = min_track_area
+        self.min_track_len = min_track_len
+        self.class_prompts = [l.strip() for l in open(detic_cfg.class_prompts)]
+        self.detector = detic_utils.build_detic(
+            self.class_prompts,
+            detic_cfg.frame_size,
+            detic_cfg.nms,
+            detic_cfg.conf,
+            gpu_id=0
+        )
+        self.tracker = BYTETracker(
+            bytetrack_cfg.track_thresh,
+            bytetrack_cfg.track_iou_low_thresh,
+            bytetrack_cfg.match_thresh,
+            bytetrack_cfg.frame_rate,
+            bytetrack_cfg.track_buffer,
+            bytetrack_cfg.motion_weight,
+            bytetrack_cfg.mot20
+        )
 
         # Output directories
         self.videos_dir = os.path.join(self.base_dir, 'videos_mp4')
@@ -131,14 +167,11 @@ class ObjectTracksParser(object):
         misc_utils.check_dirs(self.tracks_meta_dir)
         self.progress_tracker = misc_utils.ProgressTracker(os.path.join(self.tracks_meta_dir, 'completed.txt'))
 
-        # Setup vocabulary for detic classification
-        self.class_prompts = [l.strip() for l in open(args.class_prompts)]
-
     def scheduled_jobs(self):
         for job_id, ln in enumerate(open(self.index_fn)):
             youtube_id = ln.strip()
             segm_filepath = os.path.join(self.segments_dir, youtube_id[:2], f"{youtube_id}.txt")
-            if len(youtube_id) != 11:
+            if len(youtube_id) != 11 or not misc_utils.check_file(segm_filepath):
                 continue
             if job_id % self.world_size == self.rank:
                 segments = [ln.strip().split(',') for ln in open(segm_filepath, "r")]
@@ -146,34 +179,17 @@ class ObjectTracksParser(object):
                 yield job_id, youtube_id, segments
 
     @torch.no_grad()
-    def get_max_batch_size(self, detector, frame_size):
-        bs = int(128 / 0.75)
-        while bs > 0:
-            try:
-                inputs = torch.randn((bs, frame_size[0], frame_size[1], 3))
-                detector.predictor(inputs.numpy())
-                return int(bs * 0.75)
-            except RuntimeError as e:
-                if "out of memory" in str(e):
-                    bs = int(bs * 0.75)
-                else:
-                    raise e
-            except AssertionError as e:
-                continue
-        return 1
-
-    @torch.no_grad()
-    def parse_object_tracks(self, video_filepath, segment, detector, tracker, batch_size, job_id):
+    def parse_object_tracks(self, video_filepath, segment, batch_size, job_id):
         segm_start, segm_end = segment
         youtube_id = video_filepath.split('/')[-1][:11]
         objtrack_manager = ObjectTracksManager(self.tracks_meta_dir, class_desc=self.class_prompts)
 
         print(f'[{job_id}][{youtube_id}] Start parsing segment {segment}.', flush=True)
-        video = avio.VideoDB(video_filepath, frame_rate=self.args.frame_rate, start_time=segm_start, max_dur=segm_end-segm_start)
+        video = avio.VideoDB(video_filepath, frame_rate=self.frame_rate, start_time=segm_start, max_dur=segm_end-segm_start)
         loader = DataLoader(video, batch_size=batch_size, num_workers=0)
 
         t = time.time()
-        tracker.reset_tracker()
+        self.tracker.reset_tracker()
         for batch_id, (frames, frames_ts) in enumerate(loader):
             if frames_ts[0].item() >= segm_end:      # Reached end of segment.
                 break
@@ -184,13 +200,13 @@ class ObjectTracksParser(object):
             frames, frames_ts = frames[idx], frames_ts[idx]
 
             # Run detectors on batch of images
-            detections = detector.predictor(frames.numpy())
+            detections = self.detector.predictor(frames.numpy())
             detections = [det['instances'].to('cpu') for det in detections]
 
             # Run tracker frame by frame
             for dets, ts in zip(detections, frames_ts):
                 # Run tracker
-                tracker.update(ts.item(), dets.pred_boxes, dets.scores, dets.box_feats, dets.logit_classes)
+                self.tracker.update(ts.item(), dets.pred_boxes, dets.scores, dets.box_feats, dets.logit_classes)
 
             # Log
             if batch_id % 10 == 0:
@@ -201,12 +217,12 @@ class ObjectTracksParser(object):
                       f"NumTracks={objtrack_manager.tracks_saved}.", flush=True)
 
         # Scene change. Save tracks and reset tracker.
-        min_area = video.reader.frame_size[0] * video.reader.frame_size[1] * self.args.min_track_area
-        tracks = tracker.get_tracks(min_secs=self.args.min_track_len, min_area=min_area)
+        min_area = video.reader.frame_size[0] * video.reader.frame_size[1] * self.min_track_area
+        tracks = self.tracker.get_tracks(min_secs=self.min_track_len, min_area=min_area)
         objtrack_manager.save_tracks_meta(tracks, vid=youtube_id, video_size=video.reader.frame_size)
         print(f"[{job_id}][{youtube_id}] Finished parsing segment. Found {objtrack_manager.tracks_saved} tracks.", flush=True)
 
-    def process_video(self, youtube_id, detector, tracker, job_id, segments=None):
+    def parse_video(self, youtube_id, job_id, segments=None):
         if self.progress_tracker.check_completed(youtube_id):
             return  # Skip. Already processed
 
@@ -215,7 +231,7 @@ class ObjectTracksParser(object):
             return
 
         # Search for the largest batch size that fits available gpu
-        batch_size = self.get_max_batch_size(detector, avio.VideoDB(video_filepath).reader.frame_size)
+        batch_size = get_max_batch_size(self.detector, avio.VideoDB(video_filepath).reader.frame_size)
         print(f"[{job_id}][{youtube_id}] Optimal Batch Size={batch_size}", flush=True)
 
         # Parse object tracks segment by segment
@@ -226,7 +242,7 @@ class ObjectTracksParser(object):
                 continue
 
             try:
-                self.parse_object_tracks(video_filepath, segm, detector, tracker, batch_size, job_id)
+                self.parse_object_tracks(video_filepath, segm, batch_size, job_id)
                 video_progress_tracker.add(segment_id)
             except AssertionError:
                 continue
@@ -235,59 +251,24 @@ class ObjectTracksParser(object):
         print(f'[{job_id}][{youtube_id}] Object parsing done.', flush=True)
 
     def process_all(self):
-        detector = detic_utils.build_detic(
-            self.class_prompts,
-            self.args.frame_size,
-            self.args.nms,
-            self.args.conf,
-            gpu_id=0
-        )
-        tracker = BYTETracker(
-            self.args.track_thresh,
-            self.args.track_iou_low_thresh,
-            self.args.match_thresh,
-            self.args.frame_rate,
-            self.args.track_buffer,
-            self.args.motion_weight,
-            self.args.mot20
-        )
-
         for job_id, youtube_id, segments in self.scheduled_jobs():
-            self.process_video(youtube_id, detector, tracker, segments=segments, job_id=job_id)
-
-    @staticmethod
-    def load_track(track_db):
-        parse_label = lambda t: t.replace('photo of a ', '').split(' (also')[0]
-        # Takes about 5 min to load ~600k tracks
-        track_class = []
-        for i, line in enumerate(gzip.open(track_db)):
-            data = json.loads(line)
-            track_class.append(parse_label(data['top10_desc'][0]))
-        return track_class
-
-    def print_progress(self):
-        dataset = Counter()
-        files = glob.glob(f'{self.tracks_meta_dir}/*/*gzip')
-        total_videos = len(glob.glob(f'{self.downl_dir}/*/*mp4'))
-        pool = mp.Pool(processes=4)
-        results = pool.imap_unordered(self.load_track, files)
-        for it, result in enumerate(tqdm.tqdm(results, total=len(files))):
-            dataset.update(result)
-            if it % 100 == 0 and it != 0:
-                total_tracks = sum([dataset[cls] for cls in dataset])
-                tracks_per_class = list(map(lambda x: x[1], dataset.most_common())) + [0]
-                hindex = [i for i, t, in enumerate(tracks_per_class) if t < i][0]
-                i500 = len([t for t in tracks_per_class if t > 500])
-                proj_tracks_per_class = [n / (it+1) * total_videos for n in tracks_per_class] + [0]
-                proj_hindex = [i for i, t, in enumerate(proj_tracks_per_class) if t < i][0]
-                proj_i500 = len([t for t in proj_tracks_per_class if t > 500])
-                print(f'\nNClasses={len(dataset)}\t{total_tracks}=tracks\tHIndex={hindex} (Est={proj_hindex})\ti-500={i500} (Est={proj_i500})')
+            self.parse_video(youtube_id, segments=segments, job_id=job_id)
 
 
 class Launcher:
     def __call__(self, args):
         torch.multiprocessing.set_start_method('spawn')
-        ObjectTracksParser(args).process_all()
+        ObjectTracksParser(
+            args.base_dir,
+            args.yid_index_fn,
+            args.dataset_domain,
+            detic_cfg=DETIC_CFG(),
+            bytetrack_cfg=BYTETRACK_CFG(),
+            min_track_area=args.min_track_area,
+            min_track_len=args.min_track_len,
+            world_size=args.world_size,
+            rank=args.rank,
+        ).process_all()
 
 
 if __name__ == '__main__':

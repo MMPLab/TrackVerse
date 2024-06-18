@@ -1,14 +1,10 @@
 import os
 import argparse
 import submitit
-import torch
 from utils import youtube as yt_utils
-from utils import segments as segm_utils
 import tqdm, json, gzip
 from collections import defaultdict
 
-from utils.avio import VideoReader, VideoWriter
-from utils import misc as misc_utils
 
 from extract_tracks import ObjectTrackExtractor
 

@@ -14,7 +14,7 @@ def parse_arguments():
     parser.add_argument("--world_size", default=1, type=int, help="scheduling chunks")
     parser.add_argument("--rank", default=0, type=int, help="scheduling chunk id")
     # Downloader args
-    parser.add_argument('--base_dir', default='./TrackVerse',
+    parser.add_argument('--base_dir', default='./TrackVerseDB',
                         help='Dataset directory')
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')
@@ -25,19 +25,21 @@ def parse_arguments():
 
 
 class VideoDownloader(object):
-    def __init__(self, args):
-        self.base_dir = args.base_dir
-        self.index_fn = args.yid_index_fn
-        self.world_size = args.world_size
-        self.rank = args.rank
-        self.args = args
+    def __init__(self, base_dir, yid_index_fn,
+                 skip_cartoon_filter=False,
+                 skip_aesthetics_filter=False,
+                 world_size=1, rank=0):
+        self.base_dir = base_dir
+        self.index_fn = yid_index_fn
+        self.world_size = world_size
+        self.rank = rank
 
         # Output directories
         self.downl_dir = os.path.join(self.base_dir, 'videos_mp4')
         self.segm_dir = os.path.join(self.base_dir, 'videos_segm')
 
         self.downloader = yt_utils.YoutubeDL(self.downl_dir)
-        self.segm_extractor = segm_utils.SegmentExtractor(self.downl_dir, self.segm_dir, args.skip_cartoon_filter, args.skip_aesthetics_filter)
+        self.segm_extractor = segm_utils.SegmentExtractor(self.downl_dir, self.segm_dir, skip_cartoon_filter, skip_aesthetics_filter)
 
     def scheduled_jobs(self):
         for job_id, ln in enumerate(open(self.index_fn)):
@@ -74,7 +76,12 @@ class VideoDownloader(object):
 class Launcher:
     def __call__(self, args):
         torch.multiprocessing.set_start_method('spawn')
-        VideoDownloader(args).process_all()
+        VideoDownloader(args.base_dir,
+                        args.yid_index_fn,
+                        args.skip_cartoon_filter,
+                        args.skip_aesthetics_filter,
+                        args.world_size,
+                        args.rank).process_all()
 
 
 if __name__ == '__main__':
