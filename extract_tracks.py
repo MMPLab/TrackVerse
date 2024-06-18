@@ -29,11 +29,11 @@ def parse_arguments():
 
 
 class Track:
-    def __init__(self, yid, ts, boxes, meta):
+    def __init__(self, yid, fn, ts, boxes, meta):
         self.yid = yid
+        self.fn = fn
         self.ts = ts
         self.boxes = boxes
-        self.fn = meta['mp4_filename']
         self.meta = meta
 
     def overlap(self, track2):
@@ -200,7 +200,7 @@ def extract_track(boxes, timestamps, reader):
 
 
 class ObjectTrackExtractor:
-    def __init__(self, base_dir, dataset_domain='TrackVerseLVIS'):
+    def __init__(self, base_dir, dataset_domain):
         """ Extract object tracks from videos.
             Args:
                 base_dir (str): The base directory.
