@@ -55,8 +55,8 @@ def parse_arguments():
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')
     parser.add_argument('--dataset_domain', default="LVIS", help='The class domain of the dataset.')
-    parser.add_argument("--min_track_area", type=float, default=0.1, help='filter out tiny boxes')
-    parser.add_argument("--min_track_len", type=float, default=3., help='filter out small tracks')
+    parser.add_argument('--min_track_area', type=float, default=0.1, help='filter out tiny boxes')
+    parser.add_argument('--min_track_len', type=float, default=3., help='filter out small tracks')
     return parser.parse_args()
 
 

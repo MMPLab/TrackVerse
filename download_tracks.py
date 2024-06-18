@@ -20,7 +20,7 @@ def parse_arguments():
     parser.add_argument("--rank", default=0, type=int, help="scheduling chunk id")
     # Downloader args
     parser.add_argument('--base_dir', default='./TrackVerseDB', help='Dataset directory')
-    parser.add_argument('--db_meta_file',  default='tracks_subsets/TrackVerseLVIS-Full.jsonl.gzip',type=str,
+    parser.add_argument('--db_meta_file',  default='tracks_subsets/TrackVerseLVIS-Full.jsonl.gzip',
                         help='The path to the database jsonl meta file.')
     parser.add_argument('--dataset_domain', default="LVIS", help='The class domain of the dataset.')
     return parser.parse_args()

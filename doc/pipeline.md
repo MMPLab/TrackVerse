@@ -1,21 +1,18 @@
 # Dataset creation pipeline
-Assume the dataset will be created in the following folder.
+We assume the dataset will be created in the following folder.
 ```bash
 export TRACKVERSE_DB=/pth/to/trackverase/folder
 ```
 
 The dataset of object tracks was generated as follows:
 
-<div align="center">
-  <img src="./figs/pipeline.png" alt="drawing" width="70%"/>
-</div>
+<div><img src="./figs/pipeline.png" alt="drawing" width="100%"></div>
 
 <!---------------------------------------------------------------------------------------------->
 <h3>Step 1-3: Download videos, find and filter segments</h3>
 <details><summary></summary>
 
-For our dataset, we downloaded 64K YouTube videos, sampled from the [HD-VILA-100M](https://github.com/microsoft/XPretrain/tree/main/hd-vila-100m) dataset, and specified in `assets/trackverse-yids-all.txt`. Videos were acquired at 720p resolution and original frame rates.
-
+We downloaded 64K YouTube videos, sampled from the [HD-VILA-100M](https://github.com/microsoft/XPretrain/tree/main/hd-vila-100m) dataset, and specified in `assets/trackverse-yids-all.txt`. Videos were acquired at 720p resolution and original frame rates.
 
 > [!NOTE]
 > Slurm is used to split the work across nodes. Each job uses 10 cpu cores and 1 gpu. 
@@ -82,8 +79,7 @@ for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python parse_tracks.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --yid_index_fn assets/trackverse-yids-all.txt \
-        --dataset_domain TrackVerseLVIS \
-        --class_prompts assets/lvis-prompts.txt \
+        --dataset_domain LVIS \
         --world_size ${WORLD_SIZE} \
         --rank ${JOB_NO}
 done
@@ -103,7 +99,7 @@ for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python extract_tracks.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --yid_index_fn assets/trackverse-yids-all.txt \
-        --dataset_domain TrackVerseLVIS \
+        --dataset_domain LVIS \
         --world_size ${WORLD_SIZE} \
         --rank ${JOB_NO}
 done
@@ -145,12 +141,11 @@ We have also implemented motion and diversity-based curation strategies, by ensu
 # Compute embeddings and optical flow
 # Saves tracks under ${BASE_DIR}/tracks_${METRIC}/${DB_DOMAIN}
 WORLD_SIZE=128
-INDEX_FILE="tracks_subsets/TrackVerseLVIS-Full-4M.jsonl.gzip"
-DB_DOMAIN="TrackVerseLVIS"
+INDEX_FILE="tracks_subsets/TrackVerseLVIS-Full.jsonl.gzip"
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python visual_metrics.py --slurm \
         --base_dir ${BASE_DIR} \
-        --dataset_domain ${DB_DOMAIN} \
+        --dataset_domain LVIS \
         --db_meta_file ${INDEX_FILE} \
         --metric motion \
         --world_size ${WORLD_SIZE} \
