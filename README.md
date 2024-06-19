@@ -50,11 +50,11 @@ The dataset is released as a list of YouTube video IDs together with the metadat
 
 | Subset        | #Tracks |Max Tracks per Class |Link |
 |---|---|---|---|
-|Full TrackVerse|4.1M|---|[Google Drive](https://drive.google.com/file/d/17MjPEpW2OTPqaFlL3OO0i2YEwJOeDeMx/view?usp=sharing)|
-|82K-CB100 |82K|100|[Google Drive](https://drive.google.com/file/d/1f-m5ot7ShqOVLPB3kGI0zJsgrp4n64Hr/view?usp=sharing)|
-|184K-CB300 |184K|300|[Google Drive](https://drive.google.com/file/d/12X7PxNV2IWvZMafhIl9hdbdvQwtp-K6D/view?usp=sharing)|
-|259K-CB500 |259K|500|[Google Drive](https://drive.google.com/file/d/1E1bZQzUON4gAgJtQXAumFm8BIliyE6vV/view?usp=sharing)|
-|392K-CB1000 |392K|1000|[Google Drive](https://drive.google.com/file/d/1OSO_nnmqIx7myc6l8hNECzKSD1-Lu5bg/view?usp=sharing)|
+|Full TrackVerse|4.1M|---|[Google Drive](https://drive.google.com/file/d/14xCEq-UEQAZaFQj7-fGNqEnOd26AZtYx/view?usp=drive_link)|
+|82K-CB100 |82K|100|[Google Drive](https://drive.google.com/file/d/181WNhqewLnj-Ais3rL7cYoIwzowbUob4/view?usp=drive_link)|
+|184K-CB300 |184K|300|[Google Drive](https://drive.google.com/file/d/1410JsoHwsY8eiFvpfWk8M0yYFh7EC62I/view?usp=drive_link)|
+|259K-CB500 |259K|500|[Google Drive](https://drive.google.com/file/d/16jM3_IoSD59k33LfhDm87r0oip7W3ZNw/view?usp=drive_link)|
+|392K-CB1000 |392K|1000|[Google Drive](https://drive.google.com/file/d/1qT2HvJumzdcNqMapP8SJZ18j9D1ABDwj/view?usp=drive_link)|
 
 <details> <summary>Metadata keys</summary>
 Below is a detailed explanation of the keys present in each line of these JSONL files:
