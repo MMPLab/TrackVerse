@@ -20,11 +20,11 @@ def parse_arguments():
     parser.add_argument("--world_size", default=1, type=int, help="scheduling chunks")
     parser.add_argument("--rank", default=0, type=int, help="scheduling chunk id")
 
-    parser.add_argument('--base_dir', default='./TrackVerse',
+    parser.add_argument('--base_dir', default='./TrackVerseDB',
                         help='Dataset directory')
     parser.add_argument('--yid_index_fn', default="assets/trackverse-yids-all.txt",
                         help='index of youtube ids to download.')
-    parser.add_argument('--dataset_domain', default="TrackVerseLVIS", help='The class domain of the dataset.')
+    parser.add_argument('--dataset_domain', default="LVIS", help='The class domain of the dataset.')
     return parser.parse_args()
 
 

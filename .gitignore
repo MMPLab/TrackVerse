@@ -141,6 +141,5 @@ yjobs.md
 .vscode/
 
 # data
-datasets/
-trackverse/
 TrackVerseDB/
+temporary-folder/
