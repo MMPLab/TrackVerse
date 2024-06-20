@@ -40,7 +40,7 @@ Now, use the following bash script to initiate the parallel download of TrackVer
 ```bash
 WORLD_SIZE=128
 INDEX_FILE="tracks_subsets/TrackVerseLVIS-Full-4M.jsonl.gzip"
-DB_DOMAIN="TrackVerseLVIS"
+DB_DOMAIN="LVIS"
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python download_tracks.py --slurm --remove_video_mp4 \
         --base_dir ${TRACKVERSE_DB} \

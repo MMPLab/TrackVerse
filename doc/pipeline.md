@@ -10,7 +10,7 @@ The dataset of object tracks was generated as follows:
 
 <!---------------------------------------------------------------------------------------------->
 <h3>Step 1-3: Download videos, find and filter segments</h3>
-<details><summary></summary>
+<details><summary>1-3</summary>
 
 We downloaded 64K YouTube videos, sampled from the [HD-VILA-100M](https://github.com/microsoft/XPretrain/tree/main/hd-vila-100m) dataset, and specified in `assets/trackverse-yids-all.txt`. Videos were acquired at 720p resolution and original frame rates.
 
@@ -39,24 +39,6 @@ done
 This code creates 2 folders under `${TRACKVERSE_DB}`:
 - `${TRACKVERSE_DB}/videos_mp4`: Folder with the original videos at 720p resolution.
 - `${TRACKVERSE_DB}/videos_segm`: Folder with one text file per video indicating the selected segments (List of start and end timestamps). 
-</details>
-
-<!---------------------------------------------------------------------------------------------->
-<h3>Step 3a: Deface</h3>
-<details><summary></summary>
-
-To comply with [GDPR](https://gdpr.eu/what-is-gdpr/), we also try to blur out all faces and license plates appearing in the video using [Deface](https://github.com/ORB-HD/deface)  
-
-To do this for all videos in the dataset:
-```bash
-python3 -m pip install deface
-```
-
-Then run Deface on all videos using the bash script:
-```bash
-chmod a+x gdpr_blur_faces.sh  
-./gdpr_blur_faces.sh
-```
 </details>
 
 <!---------------------------------------------------------------------------------------------->
@@ -110,6 +92,31 @@ All tracks are saved to `${TRACKVERSE_DB}/tracks_mp4`.
 </details>
 
 <!---------------------------------------------------------------------------------------------->
+<h3>Step 4b: Deface</h3>
+<details><summary></summary>
+
+To comply with [GDPR](https://gdpr.eu/what-is-gdpr/), we also try to blur out all faces and license plates appearing in the video using [Deface](https://github.com/ORB-HD/deface)  
+
+First install deface
+```bash
+python3 -m pip install deface
+```
+
+Then run Deface on all track clips:
+```bash
+WORLD_SIZE=128
+for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
+    python deface_tracks.py --slurm \
+        --base_dir ${TRACKVERSE_DB} \
+        --dataset_domain LVIS \
+        --deface_cmd deface \
+        --world_size ${WORLD_SIZE} \
+        --rank ${JOB_NO}
+done
+```
+</details>
+
+<!---------------------------------------------------------------------------------------------->
 <h3>Step 5: Dataset curation</h3>
 <details><summary></summary>
 Finally, we define subsets of object tracks with more balanced class distributions by selecting for each class the `K` samples with the highest classification logits weighted by the objectness score.
@@ -123,7 +130,7 @@ Finally, we define subsets of object tracks with more balanced class distributio
 ```bash
 # First create a single index file containing all track metadata extracted to ${BASE_DIR}/tracks_meta
 INDEX_FILE="tracks_subsets/TrackVerseLVIS/TrackVerseLVIS-Full-4M.jsonl.gzip"
-python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --dataset_domain TrackVerseLVIS --action index --num_workers 16   # num_workers speed up reading of the metadata
+python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --dataset_domain LVIS --action index --num_workers 16   # num_workers speed up reading of the metadata
 
 # Then sample both random and class-balanced subsets
 python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action sample_random --N 82 184 259 392
@@ -154,7 +161,7 @@ done
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
     python visual_metrics.py --slurm \
         --base_dir ${BASE_DIR} \
-        --dataset_domain ${DB_DOMAIN} \
+        --dataset_domain LVIS \
         --db_meta_file ${INDEX_FILE} \
         --metric embeddings \
         --world_size ${WORLD_SIZE} \
