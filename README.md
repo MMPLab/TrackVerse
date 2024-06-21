@@ -24,7 +24,7 @@ In this repo, we provide an overview of the TrackVerse dataset, and the code to 
 The Full TrackVerse contains 4,100,000 object tracks, spanning 1203 categories from the [LVIS](https://www.lvisdataset.org) ontology 
 with a long-tailed distribution. 
 The objects are localized using [DETIC](https://github.com/facebookresearch/Detic) and tracked over time using 
-[ByteTrack](github.com/ifzhang/bytetrack). See detailed analysis in [here](./doc/statistics.md).
+[ByteTrack](https://github.com/ifzhang/ByteTrack). See detailed analysis in [here](./doc/statistics.md).
 
 We also offer curated subsets at different scales, ensuring more balanced class distributions. 
 These subsets limit the number of tracks per class to 100, 300, 500, and 1000, resulting in four carefully selected 
