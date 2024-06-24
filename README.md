@@ -27,8 +27,7 @@ The objects are localized using [DETIC](https://github.com/facebookresearch/Deti
 [ByteTrack](https://github.com/ifzhang/ByteTrack). See detailed analysis in [here](./doc/statistics.md).
 
 We also offer curated subsets at different scales, ensuring more balanced class distributions. 
-These subsets limit the number of tracks per class to 100, 300, 500, and 1000, resulting in four carefully selected 
-subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
+These subsets limit the number of tracks per class to 100, 300, 500, and 1000, resulting in four subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
 
 
 ## Quickstart
@@ -39,7 +38,7 @@ Get started with TrackVerse by setting up your environment and exploring the dat
 
 
 ## Download TrackVerse
-The dataset is released as a list of YouTube video IDs together with the metadata for all object tracks extracted from them. The dataset is organized in JSONL files, with each line containing the metadata for a single object track. TrackVerse is available for download in the following subsets:
+We release the dataset as a list of YouTube video IDs together with the metadata for all object tracks extracted from them. The dataset is organized in JSONL files, with each line containing the metadata for a single object track. TrackVerse is available for download in the following subsets:
 
 | Subset        | #Tracks |Max Tracks per Class |Link |
 |---|---|---|---|
@@ -52,17 +51,17 @@ The dataset is released as a list of YouTube video IDs together with the metadat
 <details> <summary>Metadata keys</summary>
 Below is a detailed explanation of the keys present in each line of these JSONL files:
 
-- `track_id` - unique track identifier.
-- `video_size` - [height, width] of the video from which this track was extracted.
-- `track_ts` - [start_time, end_time] timestamps (seconds) in the original video for the first and last frame in the track.
-- `top10_lbl` - Class IDs of the top-10 predicted classes for the track, based on class logit score.
-- `top10_desc` - Names of the top-10 predicted classes for the track, based on class logit score.
-- `top10_cls` - [[top-10 logits mean], [top-10 logits std]] A list of the mean values of the classification logits for the top 10 classes, and a list of the standard deviations for these logits.
-- `top10_wcls` - [[top-10 weighted logits mean], [top-10 weighted logits std]] A list of the mean scores for each of the top 10 weighted scores (class logits weighted by the objectness score), and a list of the standard deviations of these scores.
-- `frame_ts` - timestamps (seconds) in the original video for each frame in the track
-- `frame_bboxes` - list of bounding box coordinates [top_left_x, top_left_y, bottom_right_x, bottom_right_y] of the object for each frame in the track.
 - `yid` - YouTube ID for the video from which this track was extracted
-- `mp4_filename` - Filename of the track produced by running the track extraction pipeline.
+- `fn` - Filename of the track produced by running the track extraction pipeline.
+- `video_size` - [height, width] of the video from which this track was extracted.
+- `top10_lbl` - Class IDs of the top-10 predicted classes for the track, based on weighted class logit score.
+- `top10_desc` - Names of the top-10 predicted classes.
+- `top10_logit_mu` - Average (over time) of the classification logits for the `top10_lbl` classes.
+- `top10_logit_std` - Standard deviation (over time) of the classification logits for the `top10_lbl` classes.
+- `top10_wlogit_mu` - Average (over time) of the classification logits weighted by DETIC's objectness score for the `top10_lbl` classes.
+- `top10_wlogit_std` - Standard deviation (over time) of the classification logits weighted by DETIC's objectness score for the `top10_lbl` classes.
+- `track_ts` - Timestamps (seconds) in the original video for each frame in the track
+- `track_bbox` - Bounding box coordinates [top_left_x, top_left_y, bottom_right_x, bottom_right_y] of the object for each frame in the track.
 </details>
 
 To extract TrackVerse from the JSONL file, follow the [download](doc/download.md) instruction.
