@@ -62,7 +62,7 @@ Below is a detailed explanation of the keys present in each line of these JSONL 
 - `top10_wlogit_mu` - Average (over time) of the classification logits weighted by DETIC's objectness score for the `top10_lbl` classes.
 - `top10_wlogit_std` - Standard deviation (over time) of the classification logits weighted by DETIC's objectness score for the `top10_lbl` classes.
 - `track_ts` - Timestamps (seconds) in the original video for each frame in the track
-- `track_bbox` - Bounding box coordinates [top_left_x, top_left_y, bottom_right_x, bottom_right_y] of the object for each frame in the track.
+- `track_bbox` - Bounding box coordinates [top_left_x, top_left_y, width, height] of the object for each frame in the track.
 </details>
 
 To extract TrackVerse from the JSONL file, follow the [download](doc/download.md) instruction.
