@@ -26,7 +26,7 @@ class YoutubeDL(object):
             return STATUS.DONE, filename
 
         misc_utils.check_dirs(folder)
-        format_id = '22,18'  # for 720p videos with audio
+        format_id = '136/135/134/137'  # for 720p/480p/360p/1080p videos without audio
         ydl_opts = {
             'outtmpl': f'{folder}/%(id)s.%(ext)s',
             'merge_output_format': 'mp4',
