@@ -11,10 +11,11 @@ class STATUS(Enum):
 
 
 class YoutubeDL(object):
-    def __init__(self, downl_dir):
+    def __init__(self, downl_dir, cookiefile):
         misc_utils.check_dirs(downl_dir)
         self.downl_dir = downl_dir
         self.downl_tracker = misc_utils.ProgressTracker(os.path.join(downl_dir, 'downloaded.txt'))
+        self.cookiefile = cookiefile
 
     def download_video(self, youtube_id):
         url = f"https://www.youtube.com/watch?v={youtube_id}"
@@ -37,10 +38,14 @@ class YoutubeDL(object):
             'progress': False,
             'no_post_overwrites': True,
         }
+        if self.cookiefile is not None:
+            ydl_opts['cookiefile'] = self.cookiefile
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             down_result = ydl.download([url])
 
-        self.downl_tracker.add(youtube_id)
         if down_result != 0:
             return STATUS.FAIL, None
+        
+        self.downl_tracker.add(youtube_id)
         return STATUS.SUCCESS, filename

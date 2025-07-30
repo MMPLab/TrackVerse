@@ -6,7 +6,7 @@ import tqdm, json, gzip
 from collections import defaultdict
 
 
-from extract_tracks import ObjectTrackExtractor
+from extract_tracks import ObjectTrackExtractor, Track
 
 import numpy as np
 
@@ -19,33 +19,23 @@ def parse_arguments():
     parser.add_argument("--world_size", default=1, type=int, help="scheduling chunks")
     parser.add_argument("--rank", default=0, type=int, help="scheduling chunk id")
     # Downloader args
-    parser.add_argument('--base_dir', default='./TrackVerseDB', help='Dataset directory')
-    parser.add_argument('--db_meta_file',  default='tracks_subsets/TrackVerseLVIS-Full.jsonl.gzip',
+    parser.add_argument('--base_dir', default='./', help='Dataset directory')
+    parser.add_argument('--db_meta_file',  default='metadata/LVIS-NoStatic-1121K-cls1171CB2500-processed.jsonl.gzip',
                         help='The path to the database jsonl meta file.')
-    parser.add_argument('--dataset_domain', default="LVIS", help='The class domain of the dataset.')
+    parser.add_argument('--cookiefile', default=None, help='The path to the cookie file.')
     return parser.parse_args()
 
-
-class Track:
-    def __init__(self, yid, fn , ts, boxes, meta):
-        self.yid = yid
-        self.ts = ts
-        self.boxes = boxes
-        self.fn = fn
-        self.meta = meta
-
-
 class TrackDownloader(object):
-    def __init__(self, base_dir, db_meta_file, dataset_domain):
+    def __init__(self, base_dir, db_meta_file, cookiefile):
         self.base_dir = base_dir
         self.db_meta_file = db_meta_file
 
         # Output directories
         self.videos_dir = os.path.join(self.base_dir, 'videos_mp4')
-        self.tracks_dir = os.path.join(self.base_dir, 'tracks_mp4', dataset_domain)
+        self.tracks_dir = os.path.join(self.base_dir, 'tracks_mp4')
 
-        self.downloader = yt_utils.YoutubeDL(self.videos_dir)
-        self.extractor = ObjectTrackExtractor(base_dir, dataset_domain)
+        self.downloader = yt_utils.YoutubeDL(self.videos_dir, cookiefile)
+        self.extractor = ObjectTrackExtractor(base_dir)
 
     def process_video(self, youtube_id, tracks, job_id):
         # Download the orignal video
@@ -62,21 +52,18 @@ class TrackDownloader(object):
         self.extractor.extract_tracks_from_video(youtube_id, tracks, job_id)
 
 
-def scheduled_jobs(downloader, rank=0, world_size=1):
+def scheduled_jobs(meta_file_path, rank=0, world_size=1):
     """Generate jobs assigned to a particular worker based on the rank and total number of workers.
-
-    Args:
-        downloader (TrackDownloader): The track downloader.
-        world_size (int, optional): How many chunks to split the work in. 
-        rank (int, optional): Chunk ID.
+    Each job consists of a YouTube video ID and its associated tracks.
 
     Yields:
         tuple: A tuple containing the job index, YouTube ID, and the associated tracks data.
     """
-
+    # Note: In the metadata file, tracks from the same YouTube video are grouped together.
     job_id, youtube_id, tracks = -1, '', []
-    for line in gzip.open(f'{downloader.base_dir}/{downloader.db_meta_file}', 'rt'):
+    for line in gzip.open(meta_file_path, 'rt'):
         m = json.loads(line)
+        # Check if the YouTube ID has changed (indicating a new video).
         if youtube_id != m['yid']:
             if job_id % world_size == rank and job_id >= 0:
                 yield job_id, youtube_id, tracks
@@ -84,17 +71,17 @@ def scheduled_jobs(downloader, rank=0, world_size=1):
             youtube_id, tracks = m['yid'], []
         tracks.append(Track(
             youtube_id,
-            fn=m['fn'],
+            fn=m['track_mp4_filename'],
             ts=np.array(m['track_ts']).astype(float),
-            boxes=np.array(m['track_bbox']).astype(float),
+            boxes=np.array(m['frame_bboxes']).astype(float),
             meta=m,
         ))
 
 
 class Launcher:
     def __call__(self, args):
-        downloader = TrackDownloader(args.base_dir, args.db_meta_file, args.dataset_domain)
-        for job_id, youtube_id, tracks_meta in scheduled_jobs(downloader, args.rank, args.world_size):
+        downloader = TrackDownloader(args.base_dir, args.db_meta_file, args.cookiefile)
+        for job_id, youtube_id, tracks_meta in scheduled_jobs(f'{args.base_dir}/{args.db_meta_file}', args.rank, args.world_size):
             downloader.process_video(youtube_id, tracks_meta, job_id=job_id)
 
 
