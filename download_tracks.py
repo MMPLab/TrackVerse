@@ -2,9 +2,7 @@ import os
 import argparse
 import submitit
 from utils import youtube as yt_utils
-import tqdm, json, gzip
-from collections import defaultdict
-
+import json, gzip
 
 from extract_tracks import ObjectTrackExtractor, Track
 
@@ -22,13 +20,24 @@ def parse_arguments():
     parser.add_argument('--base_dir', default='./', help='Dataset directory')
     parser.add_argument('--db_meta_file',  default='metadata/LVIS-NoStatic-1121K-cls1171CB2500-processed.jsonl.gzip',
                         help='The path to the database jsonl meta file.')
+    parser.add_argument('--remove_video_mp4', default=False, action='store_true',
+                        help='Remove the original video mp4 files after extracting tracks.')
+    # Cookie file for youtube-dl
     parser.add_argument('--cookiefile', default=None, help='The path to the cookie file.')
     return parser.parse_args()
 
 class TrackDownloader(object):
-    def __init__(self, base_dir, db_meta_file, cookiefile):
+    def __init__(self, base_dir, db_meta_file, cookiefile, remove_video_mp4=False):
+        """ Downloader for YouTube videos and track extraction.
+            Args:
+                base_dir (str): The base directory for the dataset.
+                db_meta_file (str): The path to the database metadata file.
+                cookiefile (str): The path to the cookie file for youtube-dl.
+                remove_video_mp4 (bool): Whether to remove the original video mp4 files after extraction.
+        """
         self.base_dir = base_dir
         self.db_meta_file = db_meta_file
+        self.remove_video_mp4 = remove_video_mp4
 
         # Output directories
         self.videos_dir = os.path.join(self.base_dir, 'videos_mp4')
@@ -37,7 +46,7 @@ class TrackDownloader(object):
         self.downloader = yt_utils.YoutubeDL(self.videos_dir, cookiefile)
         self.extractor = ObjectTrackExtractor(base_dir)
 
-    def process_video(self, youtube_id, tracks, job_id):
+    def process_video(self, youtube_id, tracks, job_id, remove_video_mp4):
         # Download the orignal video
         dl_status, video_filepath = self.downloader.download_video(youtube_id)
         if dl_status == yt_utils.STATUS.FAIL:
@@ -50,6 +59,14 @@ class TrackDownloader(object):
 
         # Extract tracks
         self.extractor.extract_tracks_from_video(youtube_id, tracks, job_id)
+        
+        # Remove the original video if requested
+        if self.remove_video_mp4:
+            if os.path.exists(video_filepath):
+                os.remove(video_filepath)
+                print(f'[{job_id}][{youtube_id}] Removed original video file: {video_filepath}', flush=True)
+            else:
+                print(f'[{job_id}][{youtube_id}] Original video file not found: {video_filepath}', flush=True)
 
 
 def scheduled_jobs(meta_file_path, rank=0, world_size=1):
@@ -80,7 +97,7 @@ def scheduled_jobs(meta_file_path, rank=0, world_size=1):
 
 class Launcher:
     def __call__(self, args):
-        downloader = TrackDownloader(args.base_dir, args.db_meta_file, args.cookiefile)
+        downloader = TrackDownloader(args.base_dir, args.db_meta_file, args.cookiefile, args.remove_video_mp4)
         for job_id, youtube_id, tracks_meta in scheduled_jobs(f'{args.base_dir}/{args.db_meta_file}', args.rank, args.world_size):
             downloader.process_video(youtube_id, tracks_meta, job_id=job_id)
 
