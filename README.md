@@ -20,7 +20,7 @@ The TrackVerse dataset is a large-scale collection of 31.9 million object tracks
 
 TrackVerse is designed to ensure object-centricity, class diversity, and rich object motions and states.  Each track is enriched with metadata, including bounding boxes, timestamps, and prediction labels, making it a valuable resource for research in object-centric representation learning, video analysis, and robotics.
 
-In our paper, we explore the use of TrackVerse for learning unsupervised image representations. By introducing natural temporal augmentations—i.e., viewing an object across time and motion—TrackVerse enables models to learn fine-grained, state-aware representations that are more sensitive to object transformations and behaviors (See paper and [Variance-Aware Contrastive Learning]() for details).
+In our paper, we explore the use of TrackVerse for learning unsupervised image representations. By introducing natural temporal augmentations—i.e., viewing an object across time and motion—TrackVerse enables models to learn fine-grained, state-aware representations that are more sensitive to object transformations and behaviors (See paper and [Variance-Aware Contrastive Learning](#variance-aware-contrastive-learning) for details).
 
 ## 🚀 News
 - **[July 2025]** TrackVerse dataset and download scripts are now publicly released!
