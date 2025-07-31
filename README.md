@@ -16,7 +16,7 @@ This repository provides the data, tools, and code to download, explore, and uti
 
 <img src="./doc/figs/banner.gif" alt="trackverse" width="80%"/>
 
-The TrackVerse dataset is a large-scale collection of 4.1 million object tracks, each capturing the motion and appearance of an object over time. These tracks are automatically extracted from YouTube videos using state-of-the-art object detection ([DETIC](https://github.com/facebookresearch/Detic)) and tracking ([ByteTrack](https://github.com/ifzhang/ByteTrack)) algorithms. The dataset spans 1203 object categories from the [LVIS](https://www.lvisdataset.org) ontology, ensuring a diverse and long-tailed distribution of object classes.
+The TrackVerse dataset is a large-scale collection of 31.9 million object tracks, each capturing the motion and appearance of an object over time. These tracks are automatically extracted from YouTube videos using state-of-the-art object detection ([DETIC](https://github.com/facebookresearch/Detic)) and tracking ([ByteTrack](https://github.com/ifzhang/ByteTrack)) algorithms. The dataset spans 1203 object categories from the [LVIS](https://www.lvisdataset.org) ontology, ensuring a diverse and long-tailed distribution of object classes.
 
 TrackVerse is designed to ensure object-centricity, class diversity, and rich object motions and states.  Each track is enriched with metadata, including bounding boxes, timestamps, and prediction labels, making it a valuable resource for research in object-centric representation learning, video analysis, and robotics.
 
@@ -55,7 +55,7 @@ To support diverse research needs, we provide the full TrackVerse dataset, curat
 
 | Subset        | #Tracks | Max Tracks per Class | Link |
 |---------------|---------|----------------------|------|
-| Full TrackVerse | 4.1M   | ---                  | [Google Drive](https://drive.google.com/file/d/14xCEq-UEQAZaFQj7-fGNqEnOd26AZtYx/view?usp=drive_link) |
+| Full TrackVerse | 31.9M   | ---                  | Coming soon. |
 | 82K-CB100      | 82K    | 100                  | [Google Drive](https://drive.google.com/file/d/181WNhqewLnj-Ais3rL7cYoIwzowbUob4/view?usp=drive_link) |
 | 184K-CB300     | 184K   | 300                  | [Google Drive](https://drive.google.com/file/d/1410JsoHwsY8eiFvpfWk8M0yYFh7EC62I/view?usp=drive_link) |
 | 259K-CB500     | 259K   | 500                  | [Google Drive](https://drive.google.com/file/d/16jM3_IoSD59k33LfhDm87r0oip7W3ZNw/view?usp=drive_link) |
