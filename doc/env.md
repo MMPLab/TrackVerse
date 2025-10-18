@@ -1,5 +1,5 @@
 # Environment
-Create conda environment with youtube-dl, av, pytorch, detectron2, detic and bytetrack.
+Create conda environment with youtube-dl, av, pytorch, detectron2, detic and bytetrack for collecting object tracks from videos.
 
 > [!WARNING]  
 > Please follow these instructions carefully, including version numbers of the various packages, 
@@ -11,8 +11,8 @@ Create conda environment with youtube-dl, av, pytorch, detectron2, detic and byt
 > them to work together.
 
 ```bash
-conda create -n trackverse -y python=3.8  # python must be 3.8 (won't work with >=3.9 or <3.7) 
-conda activate trackverse
+conda create -n trackverse_pipeline -y python=3.8  # python must be 3.8 (won't work with >=3.9 or <3.7) 
+conda activate trackverse_pipeline
 
 # detectron2 does not work with latest pytorch. We use pytorch==1.10 with cuda==11.3.
 conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch

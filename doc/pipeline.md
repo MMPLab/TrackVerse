@@ -8,9 +8,10 @@ The dataset of object tracks was generated as follows:
 
 <div><img src="./figs/pipeline.png" alt="drawing" width="100%"></div>
 
+
 <!---------------------------------------------------------------------------------------------->
 <h3>Step 1-3: Download videos, find and filter segments</h3>
-<details><summary>1-3</summary>
+<details><summary></summary>
 
 We downloaded 64K YouTube videos, sampled from the [HD-VILA-100M](https://github.com/microsoft/XPretrain/tree/main/hd-vila-100m) dataset, and specified in `assets/trackverse-yids-all.txt`. Videos were acquired at 720p resolution and original frame rates.
 
@@ -27,7 +28,7 @@ We downloaded 64K YouTube videos, sampled from the [HD-VILA-100M](https://github
 ```bash
 WORLD_SIZE=128
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
-    python download_videos.py --slurm \
+    python pipeline/download_videos.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --yid_index_fn assets/trackverse-yids-all.txt \
         --skip_cartoon_filter --skip_aesthetics_filter \
@@ -58,7 +59,7 @@ set of categories for DETIC to detect by proving a new list of class prompts.
 ```bash
 WORLD_SIZE=128
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
-    python parse_tracks.py --slurm \
+    python pipeline/parse_tracks.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --yid_index_fn assets/trackverse-yids-all.txt \
         --dataset_domain LVIS \
@@ -78,7 +79,7 @@ It's now time to extract all tracks into mp4 files. To optimize the files for de
 ```bash
 WORLD_SIZE=128
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
-    python extract_tracks.py --slurm \
+    python pipeline/extract_tracks.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --yid_index_fn assets/trackverse-yids-all.txt \
         --dataset_domain LVIS \
@@ -106,7 +107,7 @@ Then run Deface on all track clips:
 ```bash
 WORLD_SIZE=128
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
-    python deface_tracks.py --slurm \
+    python pipeline/deface_tracks.py --slurm \
         --base_dir ${TRACKVERSE_DB} \
         --dataset_domain LVIS \
         --deface_cmd deface \
@@ -130,11 +131,11 @@ Finally, we define subsets of object tracks with more balanced class distributio
 ```bash
 # First create a single index file containing all track metadata extracted to ${BASE_DIR}/tracks_meta
 INDEX_FILE="tracks_subsets/TrackVerseLVIS/TrackVerseLVIS-Full-4M.jsonl.gzip"
-python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --dataset_domain LVIS --action index --num_workers 16   # num_workers speed up reading of the metadata
+python pipeline/curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --dataset_domain LVIS --action index --num_workers 16   # num_workers speed up reading of the metadata
 
 # Then sample both random and class-balanced subsets
-python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action sample_random --N 82 184 259 392
-python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action sample_class_balanced --Nc 100 300 500 1000
+python pipeline/curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action sample_random --N 82 184 259 392
+python pipeline/curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action sample_class_balanced --Nc 100 300 500 1000
 ```
 
 </details>
@@ -150,7 +151,7 @@ We have also implemented motion and diversity-based curation strategies, by ensu
 WORLD_SIZE=128
 INDEX_FILE="tracks_subsets/TrackVerseLVIS-Full.jsonl.gzip"
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
-    python visual_metrics.py --slurm \
+    python pipeline/visual_metrics.py --slurm \
         --base_dir ${BASE_DIR} \
         --dataset_domain LVIS \
         --db_meta_file ${INDEX_FILE} \
@@ -159,7 +160,7 @@ for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
         --rank ${JOB_NO}
 done
 for ((JOB_NO=0; JOB_NO<${WORLD_SIZE}; JOB_NO++)); do
-    python visual_metrics.py --slurm \
+    python pipeline/visual_metrics.py --slurm \
         --base_dir ${BASE_DIR} \
         --dataset_domain LVIS \
         --db_meta_file ${INDEX_FILE} \
@@ -172,5 +173,5 @@ done
 Then, we can use these metrics to curate the dataset. For example, to sample a class-balanced subset of tracks with a minimum motion of 1.0.
 
 ```bash
-python curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action sample_class_balanced --min_motion 1.
+python pipeline/curate_db.py --base_dir ${BASE_DIR} --index_file ${INDEX_FILE} --action sample_class_balanced --min_motion 1.
 ```

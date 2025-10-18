@@ -1,81 +1,96 @@
+# TrackVerse: A Large-scale Dataset of Object Tracks
+
+<a target="_blank" href="">
+<img style="height:22pt" src="https://img.shields.io/badge/-Paper-black?style=flat&logo=arxiv"></a>
+<a target="_blank" href="https://openaccess.thecvf.com/content/ICCV2025/papers/Wei_TrackVerse_A_Large-Scale_Object-Centric_Video_Dataset_for_Image-Level_Representation_Learning_ICCV_2025_paper.pdf">
+<img style="height:22pt" src="https://img.shields.io/badge/-Code-green?style=flat&logo=github"></a>
+<!-- <a target="_blank" href="https://tiger-ai-lab.github.io/VLM2Vec/">
+<img style="height:22pt" src="https://img.shields.io/badge/-🌐%20Website-red?style=flat"></a> -->
+<a target="_blank" href="https://huggingface.co/datasets/yibingwei/TrackVerse/">
+<img style="height:22pt" src="https://img.shields.io/badge/-🤗%20Dataset-red?style=flat"></a>
+
+This repository provides the data, tools, and code to download, explore, and utilize the TrackVerse dataset.
+
 <img src="./doc/figs/banner.gif" alt="trackverse" width="80%"/>
 
-# TrackVerse: A Large-scale Dataset of Object Tracks
-TrackVerse is the largest video dataset that ensures object-centricity, class diversity and rich object motions and states to date, offering a unique playground to explore unsupervised representation learning from object dynamics, moving beyond static object appearance. 
-It is built using an automated collection pipeline, shown below, and can be easily scaled up without any manual annotation.
+The TrackVerse dataset is a large-scale collection of 31.9 million object tracks, each capturing the motion and appearance of an object over time. These tracks are automatically extracted from YouTube videos using state-of-the-art object detection ([DETIC](https://github.com/facebookresearch/Detic)) and tracking ([ByteTrack](https://github.com/ifzhang/ByteTrack)) algorithms. The dataset spans 1203 object categories from the [LVIS](https://www.lvisdataset.org) ontology, ensuring a diverse and long-tailed distribution of object classes.
 
-<p align="center">
-  <img src="./doc/figs/pipeline.png" alt="drawing" width="80%"/>
-</p>
+TrackVerse is designed to ensure object-centricity, class diversity, and rich object motions and states.  Each track is enriched with metadata, including bounding boxes, timestamps, and prediction labels, making it a valuable resource for research in object-centric representation learning, video analysis, and robotics.
 
-TrackVerse also provides a validation subset with human-verified labels for the object categories to facilitate in-domain evaluation of object representation learning methods. 
+In our paper, we explore the use of TrackVerse for learning unsupervised image representations. By introducing natural temporal augmentations—i.e., viewing an object across time and motion—TrackVerse enables models to learn fine-grained, state-aware representations that are more sensitive to object transformations and behaviors (See paper and for details). 
 
-In this repo, we provide an overview of the TrackVerse dataset, and the code to use it, extend it, or generate a customized dataset using our pipeline.
+🎁 Bonus: Our fully automated object track collection pipeline can be easily scaled up without any manual annotation. You can also create your own [customized dataset of object tracks](#create-customized-trackverse-dataset) using different vocabularies, source videos, or curation strategies.
 
-## Table of Content
-- [TrackVerse Overview](#trackverse-overview)
-- [Quickstart](#quickstart)
+## 🚀 News
+- **[Oct 2025]** Our fully automated object track collection pipeline is now publicly released!
+- **[July 2025]** TrackVerse dataset and download scripts are now publicly released!
+- **[June 2025]** 🎉 Our paper TrackVerse has been accepted to ICCV 2025 🌺
+
+Stay tuned for future updates and improvements!
+
+
+## Table of Contents
 - [Download TrackVerse](#download-trackverse)
-- [Generate Customized TrackVerse Dataset](#generate-customized-trackverse-dataset)
+- [Create Customized TrackVerse Dataset](#create-customized-trackverse-dataset)
 - [Maintenance](#maintenance)
 - [License](#license)
-
-## TrackVerse Overview
-The Full TrackVerse contains 4,100,000 object tracks, spanning 1203 categories from the [LVIS](https://www.lvisdataset.org) ontology 
-with a long-tailed distribution. 
-The objects are localized using [DETIC](https://github.com/facebookresearch/Detic) and tracked over time using 
-[ByteTrack](https://github.com/ifzhang/ByteTrack). See detailed analysis in [here](./doc/statistics.md).
-
-We also offer curated subsets at different scales, ensuring more balanced class distributions. 
-These subsets limit the number of tracks per class to 100, 300, 500, and 1000, resulting in four subsets containing 82,000, 184,000, 259,000, and 392,000 tracks, respectively.
-
-
-## Quickstart
-Get started with TrackVerse by setting up your environment and exploring the dataset through a demonstration.
-1) **Set Up the Environment:** Refer to the [install guidelines](doc/env.md) for detailed instructions.
-2) **Clone the Repository:** `git clone --recurse-submodules https://github.com/MMPLab/TrackVerse.git`
-3) **Demo:** The [dataset_demo.ipynb](dataset_demo.ipynb) notebook guides you through the process of downloading and accessing TrackVerse from the provided JSONL file and the process of using the pipeline to extract object tracks.
-
+- [Citation](#citation)
 
 ## Download TrackVerse
-We release the dataset as a list of YouTube video IDs together with the metadata for all object tracks extracted from them. The dataset is organized in JSONL files, with each line containing the metadata for a single object track. TrackVerse is available for download in the following subsets:
 
-| Subset        | #Tracks |Max Tracks per Class |Link |
-|---|---|---|---|
-|Full TrackVerse|4.1M|---|[Google Drive](https://drive.google.com/file/d/14xCEq-UEQAZaFQj7-fGNqEnOd26AZtYx/view?usp=drive_link)|
-|82K-CB100 |82K|100|[Google Drive](https://drive.google.com/file/d/181WNhqewLnj-Ais3rL7cYoIwzowbUob4/view?usp=drive_link)|
-|184K-CB300 |184K|300|[Google Drive](https://drive.google.com/file/d/1410JsoHwsY8eiFvpfWk8M0yYFh7EC62I/view?usp=drive_link)|
-|259K-CB500 |259K|500|[Google Drive](https://drive.google.com/file/d/16jM3_IoSD59k33LfhDm87r0oip7W3ZNw/view?usp=drive_link)|
-|392K-CB1000 |392K|1000|[Google Drive](https://drive.google.com/file/d/1qT2HvJumzdcNqMapP8SJZ18j9D1ABDwj/view?usp=drive_link)|
-|Validation Set |4188|6|[Link](assets/trackverse-verified-6perclass.txt)|
+TrackVerse is released as a collection of object track metadata stored in **JSONL files**, where each line represents a single track with the following fields:
+<details>
+<summary>metadata keys</summary>
 
-<details> <summary>Metadata keys</summary>
-Below is a detailed explanation of the keys present in each line of these JSONL files:
-
-- `yid` - YouTube ID for the video from which this track was extracted
-- `fn` - Filename of the track produced by running the track extraction pipeline.
-- `video_size` - [height, width] of the video from which this track was extracted.
-- `top10_lbl` - Class IDs of the top-10 predicted classes for the track, based on weighted class logit score.
-- `top10_desc` - Names of the top-10 predicted classes.
-- `top10_logit_mu` - Average (over time) of the classification logits for the `top10_lbl` classes.
-- `top10_logit_std` - Standard deviation (over time) of the classification logits for the `top10_lbl` classes.
-- `top10_wlogit_mu` - Average (over time) of the classification logits weighted by DETIC's objectness score for the `top10_lbl` classes.
-- `top10_wlogit_std` - Standard deviation (over time) of the classification logits weighted by DETIC's objectness score for the `top10_lbl` classes.
-- `track_ts` - Timestamps (seconds) in the original video for each frame in the track
-- `track_bbox` - Bounding box coordinates [top_left_x, top_left_y, width, height] of the object for each frame in the track.
+* `track_id`: Unique ID for the track
+* `track_ts`: Start and end timestamps of the track
+* `frame_ts`: Timestamps for each frame in the track
+* `frame_bboxes`: Bounding boxes `[x, y, width, height]` for each frame
+* `yid`: YouTube video ID
+* `track_mp4_filename`: Local filename of the track video
+* `top10_label_ids`: Top-10 predicted class IDs
+* `top10_label_names`: Top-10 predicted class names
 </details>
 
-To extract TrackVerse from the JSONL file, follow the [download](doc/download.md) instruction.
+To support diverse research needs, we provide the full TrackVerse dataset, curated subsets at various scales to ensure more balanced class distributions, and a human-verified validation set for in-domain evaluation:
 
-## Generate Customized TrackVerse Dataset
+| Subset        | #Tracks | Max Tracks per Class | Link |
+|---------------|---------|----------------------|------|
+| Full TrackVerse | 31.9M   | ---                  | Coming soon. |
+| 82K-CB100      | 82K    | 100                  | [🤗 Link](https://huggingface.co/datasets/yibingwei/TrackVerse/resolve/main/TrackVerseLVIS-CB100-82K.jsonl.gzip) |
+| 184K-CB300     | 184K   | 300                  | [🤗 Link](https://huggingface.co/datasets/yibingwei/TrackVerse/resolve/main/TrackVerseLVIS-CB300-184K.jsonl.gzip) |
+| 259K-CB500     | 259K   | 500                  | [🤗 Link](https://huggingface.co/datasets/yibingwei/TrackVerse/resolve/main/TrackVerseLVIS-CB500-259K.jsonl.gzip) |
+| 392K-CB1000    | 392K   | 1000                 | [🤗 Link](https://huggingface.co/datasets/yibingwei/TrackVerse/resolve/main/TrackVerseLVIS-CB1000-392K.jsonl.gzip) |
+| 1121K-CB2500    | 1.1M   | 2500                 | [🤗 Link](https://huggingface.co/datasets/yibingwei/TrackVerse/resolve/main/TrackVerse-1121K-cls1171CB2500.jsonl.gzip) |
+| 3778K-CB8000    | 3.8M   | 8000                 | [🤗 Link](https://huggingface.co/datasets/yibingwei/TrackVerse/resolve/main/TrackVerse-3778K-cls1182CB8000.jsonl.gzip) |
+| Validation Set | 4188   | 6                    | [Link](assets/trackverse-verified-6perclass.txt) |
+
+
+
+For detailed instructions on extracting TrackVerse from the JSONL files, refer to the [download guide](doc/download.md).
+
+
+## Create Customized TrackVerse Dataset
 You can also create your own customized dataset of object tracks, for example, using different vocabulary, different source videos or different curation strategies.
 
 1) **Set Up the Environment:** Refer to the [install guidelines](doc/env.md) for detailed instructions.
 2) **Clone the Repository:** `git clone --recurse-submodules https://github.com/MMPLab/TrackVerse.git`
 3) **Follow the Pipeline:** Follow the detailed steps outlined in our [pipeline documentation](doc/pipeline.md).
-
 ## Maintenance
 For support or inquiries, please open a [GitHub issue](https://github.com/MMPLab/TrackVerse/issues). If you have questions about technical details or need further assistance, feel free to reach out to us directly.
 
 ## License
 All code and data in this repo are available under the [MIT License](LICENSE) for research purposes only.
+
+## Citation
+Please consider giving a star ⭐ and citing our paper if you find this repo useful:
+```bib
+@InProceedings{Wei_2025_ICCV,
+    author    = {Wei, Yibing and Church, Samuel and Suciu, Victor and Lin, Jinhong and Wu, Cheng-En and Morgado, Pedro},
+    title     = {TrackVerse: A Large-Scale Object-Centric Video Dataset for Image-Level Representation Learning},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    month     = {October},
+    year      = {2025},
+    pages     = {11153-11163}
+}
+```
