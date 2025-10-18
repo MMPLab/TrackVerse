@@ -1,8 +1,8 @@
 # TrackVerse: A Large-scale Dataset of Object Tracks
 
-<a target="_blank" href="">
-<img style="height:22pt" src="https://img.shields.io/badge/-Paper-black?style=flat&logo=arxiv"></a>
 <a target="_blank" href="https://openaccess.thecvf.com/content/ICCV2025/papers/Wei_TrackVerse_A_Large-Scale_Object-Centric_Video_Dataset_for_Image-Level_Representation_Learning_ICCV_2025_paper.pdf">
+<img style="height:22pt" src="https://img.shields.io/badge/-Paper-black?style=flat&logo=arxiv"></a>
+<a target="_blank" href="">
 <img style="height:22pt" src="https://img.shields.io/badge/-Code-green?style=flat&logo=github"></a>
 <!-- <a target="_blank" href="https://tiger-ai-lab.github.io/VLM2Vec/">
 <img style="height:22pt" src="https://img.shields.io/badge/-🌐%20Website-red?style=flat"></a> -->
