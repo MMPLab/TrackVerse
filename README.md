@@ -43,8 +43,8 @@ TrackVerse is released as a collection of object track metadata stored in **JSON
 <summary>metadata keys</summary>
 
 * `track_id`: Unique ID for the track
-* `track_ts`: Start and end timestamps of the track
-* `frame_ts`: Timestamps for each frame in the track
+* `track_ts`: Start and end timestamps of the track (seconds) in the original video
+* `frame_ts`: Timestamps for each frame in the track (seconds) in the original video
 * `frame_bboxes`: Bounding boxes `[x, y, width, height]` for each frame
 * `yid`: YouTube video ID
 * `track_mp4_filename`: Local filename of the track video
